@@ -1,0 +1,14 @@
+{
+  "name": "myvocation2026-backend",
+  "version": "1.0.0",
+  "description": "Node.js backend for myvocation2026",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.0",
+    "express": "^4.19.0"
+  }
+}
