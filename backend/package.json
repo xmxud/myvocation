@@ -5,10 +5,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "init-db": "node db/initDb.js"
   },
   "dependencies": {
     "cors": "^2.8.0",
-    "express": "^4.19.0"
+    "express": "^4.19.0",
+    "sqlite3": "^5.1.7"
   }
 }

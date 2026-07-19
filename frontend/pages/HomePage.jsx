@@ -6,7 +6,8 @@ const NAV_ITEMS = [
   { id: 'learn', label: '学习', codename: 'KNOWLEDGE OPS' },
   { id: 'works', label: '作品', codename: 'CREATIVE WORKS' },
   { id: 'play', label: '游玩', codename: 'RECREATION' },
-  { id: 'daily', label: '日常记录', codename: 'DAILY LOG' },
+  { id: 'daily', label: '每日执行', codename: 'DAILY EXECUTION' },
+  { id: 'statistics', label: '统计分析', codename: 'DATA INSIGHT' },
 ];
 
 const DOMAINS = [
@@ -78,9 +79,9 @@ const DOMAINS = [
   },
   {
     id: 'daily',
-    name: '日常记录',
-    codename: 'DAILY LOG',
-    desc: '日志、随笔、心情碎片。用文字记录平凡日子里的思考与感动。',
+    name: '每日执行',
+    codename: 'DAILY EXECUTION',
+    desc: '记录今日行动、完成度和反馈，确保每一天的投入都被真正追踪。',
     icon: (
       <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
         <path d="M8 4h24l12 12v28H8V4z" />
@@ -88,6 +89,22 @@ const DOMAINS = [
         <line x1="14" y1="24" x2="38" y2="24" />
         <line x1="14" y1="30" x2="34" y2="30" />
         <line x1="14" y1="36" x2="28" y2="36" />
+      </svg>
+    ),
+  },
+  {
+    id: 'statistics',
+    name: '统计分析',
+    codename: 'DATA INSIGHT',
+    desc: '把执行数据汇总成进展图与完成率，为下一阶段的调整提供清晰依据。',
+    icon: (
+      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+        <rect x="6" y="6" width="36" height="36" />
+        <line x1="6" y1="16" x2="42" y2="16" />
+        <line x1="6" y1="32" x2="42" y2="32" />
+        <line x1="16" y1="6" x2="16" y2="42" />
+        <line x1="32" y1="6" x2="32" y2="42" />
+        <circle cx="24" cy="24" r="6" />
       </svg>
     ),
   },
@@ -182,8 +199,13 @@ export default function HomePage({ onNavigate }) {
   }, []);
 
   const handleNavClick = (id) => {
-    if (id === 'plans' && onNavigate) {
-      onNavigate('plans');
+    if (onNavigate && (id === 'plans' || id === 'daily' || id === 'statistics')) {
+      const pageMap = {
+        plans: 'plans',
+        daily: 'dailyExecution',
+        statistics: 'statistics',
+      };
+      onNavigate(pageMap[id]);
       setMenuOpen(false);
       return;
     }

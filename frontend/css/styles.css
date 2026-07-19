@@ -1425,8 +1425,8 @@ img {
 }
 
 .theme-card.selected {
-  border-color: var(--color-border-primary);
-  box-shadow: 0 0 20px rgba(0, 255, 102, 0.1);
+  border-color: #eab308;
+  box-shadow: 0 0 18px rgba(234, 179, 8, 0.25), inset 0 0 0 2px rgba(234, 179, 8, 0.2);
 }
 
 .theme-card.locked {
@@ -1490,6 +1490,57 @@ img {
 
 .theme-name.locked {
   color: var(--color-text-muted);
+}
+
+.theme-action-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.theme-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(0, 255, 102, 0.35);
+  border-radius: 0;
+  background: linear-gradient(135deg, rgba(0, 255, 102, 0.14), rgba(0, 255, 102, 0.04));
+  color: #8dffb2;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 0 10px rgba(0, 255, 102, 0.08);
+}
+
+.theme-action-button:hover {
+  border-color: rgba(0, 255, 102, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 12px rgba(0, 255, 102, 0.2);
+  background: linear-gradient(135deg, rgba(0, 255, 102, 0.22), rgba(0, 255, 102, 0.08));
+}
+
+.theme-action-button:focus-visible {
+  outline: 2px solid rgba(0, 255, 102, 0.5);
+  outline-offset: 2px;
+}
+
+.theme-action-button-delete {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  color: rgba(255, 255, 255, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 0 10px rgba(255, 255, 255, 0.04);
+}
+
+.theme-action-button-delete:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 12px rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+}
+
+.theme-action-button-delete:focus-visible {
+  outline-color: rgba(255, 255, 255, 0.35);
 }
 
 /* Tasks Grid (Vacation Focus) */
