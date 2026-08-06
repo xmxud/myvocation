@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import HomePage from '../pages/HomePage.jsx';
 import PlansPage from '../pages/PlansPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
+import PlanEditorPage from '../pages/PlanEditorPage.jsx';
 import DailyExecutionPage from '../pages/DailyExecutionPage.jsx';
 import StatisticsPage from '../pages/StatisticsPage.jsx';
 
@@ -15,6 +16,10 @@ export default function App() {
 
   if (currentPage === 'plans') {
     return <PlansPage onBack={() => navigateTo('home')} />;
+  }
+
+  if (currentPage === 'plan-editor') {
+    return <PlanEditorPage onBack={() => navigateTo('dashboard')} onNavigate={navigateTo} />;
   }
 
   if (currentPage === 'dashboard') {

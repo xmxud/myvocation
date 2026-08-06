@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const { initializeDatabase } = require('./db/db');
@@ -17,7 +15,8 @@ const nodesRouter = require('./routes/nodes');
 const phasesRouter = require('./routes/phases');
 const executionsRouter = require('./routes/executions');
 const statisticsRouter = require('./routes/statistics');
-const aiRouter = require('./routes/ai');
+let aiRouter;
+try { aiRouter = require('./routes/ai'); } catch (_) { /* AI 模块未就绪 */ }
 
 // 健康检查接口
 app.get('/api/health', (req, res) => {
@@ -30,7 +29,7 @@ app.use('/api/nodes', nodesRouter);
 app.use('/api/phases', phasesRouter);
 app.use('/api/daily-executions', executionsRouter);
 app.use('/api/statistics', statisticsRouter);
-app.use('/api/ai', aiRouter);
+if (aiRouter) app.use('/api/ai', aiRouter);
 
 // 404 处理
 app.use((req, res) => {
