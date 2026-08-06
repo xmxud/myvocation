@@ -2,15 +2,35 @@ import { useState, useEffect } from 'react';
 import heroBg from '../images/hero-bg.jpg';
 
 const NAV_ITEMS = [
+  { id: 'dashboard', label: '主看板', codename: 'DASHBOARD' },
   { id: 'plans', label: '我的规划', codename: 'STRATEGIC PLAN' },
   { id: 'learn', label: '学习', codename: 'KNOWLEDGE OPS' },
   { id: 'works', label: '作品', codename: 'CREATIVE WORKS' },
   { id: 'play', label: '游玩', codename: 'RECREATION' },
-  { id: 'daily', label: '每日执行', codename: 'DAILY EXECUTION' },
   { id: 'statistics', label: '统计分析', codename: 'DATA INSIGHT' },
 ];
 
 const DOMAINS = [
+  {
+    id: 'dashboard',
+    name: '主看板',
+    codename: 'DASHBOARD',
+    desc: '高三备考指挥中心。倒计时、12h追踪、今日任务清单与执行跟踪，一切尽在掌控。',
+    icon: (
+      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+        <circle cx="24" cy="24" r="18" />
+        <line x1="24" y1="6" x2="24" y2="18" />
+        <line x1="24" y1="30" x2="24" y2="42" />
+        <line x1="6" y1="24" x2="18" y2="24" />
+        <line x1="30" y1="24" x2="42" y2="24" />
+        <polyline points="18,18 6,6" />
+        <polyline points="30,18 42,6" />
+        <polyline points="18,30 6,42" />
+        <polyline points="30,30 42,42" />
+        <circle cx="24" cy="24" r="4" fill="currentColor" />
+      </svg>
+    ),
+  },
   {
     id: 'plans',
     name: '我的规划',
@@ -74,21 +94,6 @@ const DOMAINS = [
         <line x1="14" y1="20" x2="14" y2="24" />
         <circle cx="32" cy="22" r="1.5" fill="currentColor" />
         <circle cx="36" cy="26" r="1.5" fill="currentColor" />
-      </svg>
-    ),
-  },
-  {
-    id: 'daily',
-    name: '每日执行',
-    codename: 'DAILY EXECUTION',
-    desc: '记录今日行动、完成度和反馈，确保每一天的投入都被真正追踪。',
-    icon: (
-      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
-        <path d="M8 4h24l12 12v28H8V4z" />
-        <path d="M32 4v12h12" />
-        <line x1="14" y1="24" x2="38" y2="24" />
-        <line x1="14" y1="30" x2="34" y2="30" />
-        <line x1="14" y1="36" x2="28" y2="36" />
       </svg>
     ),
   },
@@ -199,10 +204,10 @@ export default function HomePage({ onNavigate }) {
   }, []);
 
   const handleNavClick = (id) => {
-    if (onNavigate && (id === 'plans' || id === 'daily' || id === 'statistics')) {
+    if (onNavigate && (id === 'dashboard' || id === 'plans' || id === 'statistics')) {
       const pageMap = {
+        dashboard: 'dashboard',
         plans: 'plans',
-        daily: 'dailyExecution',
         statistics: 'statistics',
       };
       onNavigate(pageMap[id]);

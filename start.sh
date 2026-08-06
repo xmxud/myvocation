@@ -13,15 +13,19 @@ echo "========================================="
 echo ""
 
 # ---------- 后端 ----------
-echo "[1/2] 启动后端 (Express @ http://localhost:3001) ..."
+echo "[1/3] 检查并安装后端依赖..."
 pushd "$SCRIPT_DIR/backend" > /dev/null
+[ -d node_modules ] || npm install
+echo "[2/4] 启动后端 (Express @ http://localhost:3001) ..."
 npm run dev &
 BACKEND_PID=$!
 popd > /dev/null
 
 # ---------- 前端 ----------
-echo "[2/2] 启动前端 (Vite @ http://localhost:5173) ..."
+echo "[3/4] 检查并安装前端依赖..."
 pushd "$SCRIPT_DIR/frontend" > /dev/null
+[ -d node_modules ] || npm install
+echo "[4/4] 启动前端 (Vite @ http://localhost:5173) ..."
 npm run dev &
 FRONTEND_PID=$!
 popd > /dev/null

@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { initializeDatabase } = require('./db/db');
@@ -15,6 +17,7 @@ const nodesRouter = require('./routes/nodes');
 const phasesRouter = require('./routes/phases');
 const executionsRouter = require('./routes/executions');
 const statisticsRouter = require('./routes/statistics');
+const aiRouter = require('./routes/ai');
 
 // 健康检查接口
 app.get('/api/health', (req, res) => {
@@ -27,6 +30,7 @@ app.use('/api/nodes', nodesRouter);
 app.use('/api/phases', phasesRouter);
 app.use('/api/daily-executions', executionsRouter);
 app.use('/api/statistics', statisticsRouter);
+app.use('/api/ai', aiRouter);
 
 // 404 处理
 app.use((req, res) => {
@@ -84,6 +88,10 @@ async function start() {
       console.log('  GET    /api/statistics/node/:nodeId - 节点统计');
       console.log('  GET    /api/statistics/theme/:themeId - 主题统计');
       console.log('  GET    /api/statistics - 日期范围统计\n');
+      console.log('AI 诊断 (ai):');
+      console.log('  GET    /api/ai/health             - AI 服务健康检查');
+      console.log('  POST   /api/ai/generate-exercises  - 生成薄弱点变式题');
+      console.log('  POST   /api/ai/analyze-mistake     - 错题智能分析\n');
     });
   } catch (error) {
     console.error('启动失败:', error);
