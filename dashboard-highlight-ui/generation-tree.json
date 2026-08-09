@@ -1,0 +1,25 @@
+{
+  "root": {
+    "nodeId": "gen-project-shell",
+    "kind": "project-shell",
+    "pageIds": ["page-index"],
+    "output": "partials/project-shell.html",
+    "sharedRegions": ["header", "sidebar", "main-frame"],
+    "privateRegions": [],
+    "mutableSlots": ["pageTitle", "activeNavItem"],
+    "status": "generated",
+    "children": [
+      {
+        "nodeId": "gen-dashboard-main",
+        "kind": "page-leaf",
+        "pageIds": ["page-index"],
+        "output": "pages/index.html",
+        "sharedRegions": ["header", "sidebar", "main-frame"],
+        "privateRegions": ["dashboard-body"],
+        "mutableSlots": ["pageTitle", "activeNavItem"],
+        "status": "generated",
+        "children": []
+      }
+    ]
+  }
+}

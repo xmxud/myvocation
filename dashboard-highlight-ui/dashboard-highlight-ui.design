@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "id": "page-index",
+      "title": "中大屏重点信息展示",
+      "type": "page",
+      "version": 1,
+      "createdAt": 1786104000000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "group": 0
+      },
+      "devMetadata": {
+        "htmlSrc": "pages/index.html",
+        "interactions": []
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "desktop",
+    "projectName": "中大屏重点信息展示"
+  }
+}

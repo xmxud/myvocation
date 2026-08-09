@@ -441,7 +441,7 @@ function ReviewSection({ tasks, onNavigate }) {
   return (
     <section className="dash-review-section">
       <div className="dash-review-header">
-        <span className="dash-review-title">今日复习资料</span>
+        <span className="dash-review-title">今日回顾</span>
         <span className="dash-review-subtitle">整理复习重点 · 制定次日计划</span>
         <div className="dash-review-period">
           <span className="dash-review-period-btn active">今日</span>

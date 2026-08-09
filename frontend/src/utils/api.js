@@ -1,11 +1,19 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
+function getToken() {
+  return localStorage.getItem('token') || null;
+}
+
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
+  const token = getToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
   const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     ...options,
   });
 
@@ -23,8 +31,22 @@ async function request(endpoint, options = {}) {
   return payload.data;
 }
 
+// ── Auth API ──
+export const authApi = {
+  login: (username, password) =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) }),
+  register: (username, displayName, password) =>
+    request('/auth/register', { method: 'POST', body: JSON.stringify({ username, display_name: displayName, password }) }),
+  me: () => request('/auth/me'),
+  getUsers: () => request('/auth/users'),
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+};
+
 export const themesApi = {
-  getThemes: (page = 1, limit = 10) => request(`/themes?page=${page}&limit=${limit}`),
+  getThemes: (page = 1, size = 20) => request(`/themes?page=${page}&size=${size}`),
   getTheme: (id) => request(`/themes/${id}`),
   createTheme: (data) => request('/themes', { method: 'POST', body: JSON.stringify(data) }),
   updateTheme: (id, data) => request(`/themes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -51,8 +73,9 @@ export const phasesApi = {
   updatePhase: (id, data) => request(`/phases/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deletePhase: (id) => request(`/phases/${id}`, { method: 'DELETE' }),
   addPoint: (phaseId, data) => request(`/phases/${phaseId}/points`, { method: 'POST', body: JSON.stringify(data) }),
-  updatePoint: (phaseId, pointId, data) => request(`/phases/${phaseId}/points/${pointId}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deletePoint: (phaseId, pointId) => request(`/phases/${phaseId}/points/${pointId}`, { method: 'DELETE' }),
+  // 注意：后端实际端点为 PUT/DELETE /phases/points/{point_id}（见 backend/app/routers/phases.py）
+  updatePoint: (pointId, data) => request(`/phases/points/${pointId}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePoint: (pointId) => request(`/phases/points/${pointId}`, { method: 'DELETE' }),
 };
 
 export const executionsApi = {
@@ -60,6 +83,10 @@ export const executionsApi = {
   createExecution: (data) => request('/daily-executions', { method: 'POST', body: JSON.stringify(data) }),
   updateExecution: (id, data) => request(`/daily-executions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteExecution: (id) => request(`/daily-executions/${id}`, { method: 'DELETE' }),
+  // 清空某阶段下的全部执行任务
+  clearPhaseExecutions: (phaseId) => request(`/daily-executions?phase_id=${phaseId}`, { method: 'DELETE' }),
+  // 根据阶段行动指南（含父阶段）调用 AI 生成该阶段每天的执行任务
+  aiGenerateFromGuide: (phaseId) => request('/daily-executions/ai-generate', { method: 'POST', body: JSON.stringify({ phase_id: phaseId }) }),
 };
 
 export const statisticsApi = {

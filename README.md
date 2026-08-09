@@ -1,136 +1,145 @@
-# 2026 年规划管理系统
+# 2026 我在行动 · 个人规划管理系统
 
-一个现代化的分层规划和任务管理系统，采用前后端分离架构，支持无限层级的任务树、阶段划分、每日执行跟踪和智能统计分析。
+前后端分离的个人规划管理系统，支持多用户、树形任务层级、PDCA 阶段管理、每日执行跟踪、学习记录（错题/知识点/反思三位一体）和智能统计分析。
 
-## 🌟 核心特性
+## 技术栈
 
-### 📊 灵活的规划结构
-- **树形层级**: 主题 → 重点项 → 执行要点 → 具体任务（无限嵌套）
-- **多维度跟踪**: 优先级、完成状态、进度百分比
-- **阶段划分**: 为每个计划项划分执行阶段，明确时间线
+| 层 | 技术 |
+|----|------|
+| 前端 | React 18 + Vite 5，军绿黑战术美学 UI |
+| 后端 | Python 3.12 + FastAPI + aiosqlite |
+| 数据库 | SQLite 3（WAL 模式） |
+| 认证 | JWT（python-jose + passlib） |
 
-### 📅 精细化执行管理
-- **每日记录**: 记录每日的执行情况、完成度、笔记
-- **图片附件**: 支持为执行记录添加图片
-- **历史查询**: 按日期范围查询执行历史
+## 快速开始
 
-### 📈 智能统计分析
-- **多层次统计**: 主题、节点、阶段、日期范围的统计聚合
-- **完成率计算**: 自动计算完成率和平均完成度
-- **趋势分析**: 支持时间段对比分析
-
-## 🚀 快速开始
-
-### 系统要求
-- Node.js >= 16.0
-- npm >= 8.0
-
-### 安装依赖
+### 一键启动
 
 ```bash
-# 后端依赖
-cd backend
-npm install
-
-# 前端依赖
-cd ../frontend
-npm install
+bash start.sh
 ```
 
-### 初始化数据库
+### 分步启动
 
+**后端**：
 ```bash
 cd backend
-npm run init-db
+pip install fastapi uvicorn aiosqlite pydantic pydantic-settings python-jose passlib python-multipart openpyxl
+uvicorn app.main:app --host 0.0.0.0 --port 3001 --reload
 ```
 
-### 启动服务
-
-终端 1 - 后端：
-```bash
-cd backend
-npm run dev
-```
-
-终端 2 - 前端：
+**前端**：
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
 
-### 访问应用
+### 访问
 
-- 前端: http://localhost:5173
-- 后端 API: http://localhost:3001/api
+- 前端页面：http://localhost:5173
+- 后端 API：http://localhost:3001
+- API 文档 (Swagger)：http://localhost:3001/docs
 
-## 📁 项目结构
+## 项目结构
 
 ```
-myvocation2026/
-├── frontend/                      # React 前端
-│   ├── src/pages/                 # 页面组件
-│   ├── src/css/                   # 样式
-│   ├── src/scripts/               # 工具函数
+myvocation/
+├── start.sh                        # 一键启动脚本
+├── README.md
+├── frontend/                       # React 前端
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── utils/
+│   │       └── api.js              # API 调用封装
+│   ├── pages/
+│   │   ├── HomePage.jsx            # 首页
+│   │   └── PlansPage.jsx           # 规划页
+│   ├── css/
+│   │   └── styles.css              # 全局样式（军绿黑主题）
 │   └── package.json
 │
-├── backend/                       # Node.js 后端
-│   ├── db/                        # 数据库
-│   ├── routes/                    # API 路由
-│   ├── controllers/               # 业务逻辑
-│   ├── utils/                     # 工具函数
-│   ├── server.js                  # 应用入口
-│   └── package.json
+├── backend/                        # Python/FastAPI 后端
+│   ├── app/
+│   │   ├── main.py                 # FastAPI 入口
+│   │   ├── config.py               # 配置（Pydantic Settings）
+│   │   ├── database.py             # aiosqlite 封装
+│   │   ├── core/
+│   │   │   └── auth.py             # JWT + 密码哈希
+│   │   ├── models/                 # Pydantic 模型
+│   │   ├── services/               # 业务逻辑
+│   │   └── routers/                # API 路由
+│   │       ├── auth.py             # /api/auth/*
+│   │       ├── nodes.py            # /api/themes, /api/nodes
+│   │       ├── phases.py           # /api/phases, /api/task-schedules
+│   │       ├── executions.py       # /api/daily-executions
+│   │       └── learning.py         # /api/learning-records
+│   ├── db/
+│   │   ├── app.db                  # SQLite 数据库
+│   │   └── migrate-v2.sql          # V2 迁移脚本
+│   ├── requirements.txt
+│   └── .env
 │
-└── 📚 文档
-    ├── QUICK_START.md
-    ├── DATABASE_DESIGN.md
-    ├── FRONTEND_INTEGRATION_GUIDE.md
-    ├── API_QUICK_REFERENCE.md
-    └── PROJECT_STATUS.md
+├── backend_nodejs/                 # 旧 Node.js 后端（已迁移保留）
+│
+└── docs/
+    ├── design/
+    │   └── plans-v2-design.md      # V2 规划模块设计文档
+    ├── QUICK_START.md              # 快速参考指南
+    ├── DATABASE_DESIGN.md          # 数据库设计文档
+    ├── API_QUICK_REFERENCE.md      # API 参考
+    └── DEVELOPMENT_PLAN.md         # 开发计划
 ```
 
-## 🔌 API 概览
+## API 总览
 
 ```
-GET    /api/themes              # 获取主题（分页）
-POST   /api/themes              # 创建主题
-GET    /api/nodes/:id           # 获取节点
-POST   /api/nodes               # 创建节点
-GET    /api/phases/by-node/:id  # 获取阶段
-POST   /api/daily-executions    # 记录执行
-GET    /api/statistics/theme/:id # 获取统计
+GET    /api/health                     # 健康检查
+POST   /api/auth/register              # 注册
+POST   /api/auth/login                 # 登录
+GET    /api/themes?page=&size=         # 主题列表（分页）
+POST   /api/themes                     # 创建主题
+GET    /api/themes/:id                 # 主题详情
+PUT    /api/themes/:id                 # 更新主题
+DELETE /api/themes/:id                 # 删除主题
+GET    /api/nodes/:id/children         # 子节点列表
+GET    /api/nodes/:id/full-tree        # 完整节点树
+POST   /api/nodes                      # 创建节点
+PUT    /api/nodes/:id                  # 更新节点
+DELETE /api/nodes/:id                  # 删除节点
+GET    /api/phases/by-node/:nodeId     # 阶段列表
+POST   /api/phases                     # 创建阶段
+PUT    /api/phases/:id/scores          # 更新阶段评分
+GET    /api/phases/:id/points?type=    # 阶段条目（goal/action/checkpoint）
+POST   /api/task-schedules             # 创建自动调度
+GET    /api/daily-executions/:nodeId   # 每日执行记录
+GET    /api/learning-records?subject_id=&tags=&date=  # 学习记录
+POST   /api/learning-records           # 新增学习记录
+PUT    /api/learning-records/:id       # 补填知识点/反思
+GET    /api/learning-records/stats/subject/:subjectId  # 科目统计
 ```
 
-完整 API 文档见 [API_QUICK_REFERENCE.md](API_QUICK_REFERENCE.md)
+## 数据库表
 
-## 📊 项目进度
+| 表 | 说明 |
+|----|------|
+| users | 用户 |
+| planning_nodes | 节点树（THEME → FOCUS_ITEM → TASK → SUBTASK） |
+| phases_v2 | 阶段（含评分字段，支持子阶段） |
+| phase_points | 阶段条目三合一（goal / action / checkpoint） |
+| task_schedules | 定时任务调度 |
+| daily_executions | 每日执行记录 |
+| learning_records | 学习记录（题目+知识点+反思三位一体） |
 
-| 阶段 | 任务 | 状态 |
-|------|------|------|
-| 第1阶段 | 数据库设计 | ✅ |
-| 第2阶段 | 后端 API | ✅ |
-| 第3阶段 | 前端集成 | 🔄 |
-| 第4-6阶段 | 功能完善 | ⏳ |
+详见 [docs/design/plans-v2-design.md](docs/design/plans-v2-design.md) 和 [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md)。
 
-## 📚 重要文档
+## 文档索引
 
-- [QUICK_START.md](QUICK_START.md) - 快速开始指南
-- [DATABASE_DESIGN.md](DATABASE_DESIGN.md) - 数据库设计
-- [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md) - 开发计划
-- [FRONTEND_INTEGRATION_GUIDE.md](FRONTEND_INTEGRATION_GUIDE.md) - 前端集成
-- [API_QUICK_REFERENCE.md](API_QUICK_REFERENCE.md) - API 参考
-- [PROJECT_STATUS.md](PROJECT_STATUS.md) - 项目状态
-
-## 🧪 测试 API
-
-```bash
-cd backend
-.\test-api.ps1
-```
-
-## 💾 重置数据库
-
-```bash
-cd backend
-npm run init-db
-```
+| 文档 | 说明 |
+|------|------|
+| [QUICK_START.md](docs/QUICK_START.md) | 快速参考指南 |
+| [DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | 数据库设计 |
+| [API_QUICK_REFERENCE.md](docs/API_QUICK_REFERENCE.md) | API 调用参考 |
+| [design/plans-v2-design.md](docs/design/plans-v2-design.md) | V2 规划模块设计 |
+| [DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) | 开发计划 |

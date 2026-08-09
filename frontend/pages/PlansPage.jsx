@@ -493,7 +493,8 @@ export default function PlansPage({ onBack }) {
 
   const handleDeletePoint = async (phaseId, pointId) => {
     try {
-      await phasesApi.deletePoint(phaseId, pointId);
+      // deletePoint 端点仅需 pointId（见 api.js）
+      await phasesApi.deletePoint(pointId);
       await loadPhases(activeTheme);
     } catch (err) {
       setActionMessage(err.message || '要点删除失败');

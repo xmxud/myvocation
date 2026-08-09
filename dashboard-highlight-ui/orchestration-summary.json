@@ -1,0 +1,174 @@
+{
+  "project": {
+    "name": "中大屏重点信息展示",
+    "path": "/Users/g2/codedir/myvocation/dashboard-highlight-ui",
+    "operation": "create",
+    "deviceType": "desktop",
+    "language": "zh-CN",
+    "dashboardMode": true,
+    "replicationMode": null,
+    "sourceUrl": null,
+    "visualSpecExcerpt": null,
+    "styleDefinitionBrief": "高对比聚焦风数据大屏，深色底配合琥珀强调色，突出关键指标与异常告警。",
+    "designRead": "数据监控大屏 / 运营值班人员 / 高对比聚焦 / 高密度 / 避免蓝紫霓虹光效",
+    "designDials": {
+      "layoutVariance": 1,
+      "motionIntensity": 1,
+      "visualDensity": 5
+    },
+    "styleContinuityAnchors": {
+      "colorSystem": {
+        "primaryColorRole": "琥珀色 (#F59E0B) 用于关键指标、选中状态与高优先级强调",
+        "brandHuePolicy": "单一品牌主色，不使用次级品牌色；身份/分类使用中性色阶或主色阶",
+        "stateColors": "语义状态色：success emerald, warning amber, error rose, info cyan"
+      },
+      "shapeSystem": {
+        "radiusScale": "sm 4px, md 8px, lg 12px, full 9999px；卡片/面板最大圆角 12px"
+      },
+      "typographySystem": {
+        "titleStack": "PingFang SC, Microsoft YaHei, Noto Sans SC, Hiragino Sans GB, sans-serif",
+        "bodyStack": "PingFang SC, Microsoft YaHei, Noto Sans SC, Hiragino Sans GB, sans-serif",
+        "monoStack": "SF Mono, JetBrains Mono, Fira Code, Consolas, monospace"
+      },
+      "spacingSystem": {
+        "density": "高密度数据面板，紧凑边距，面板间距 16-24px",
+        "contentRhythm": "标题-指标-图表-列表垂直堆叠，保持一致节奏"
+      },
+      "componentLanguage": {
+        "card": "深色卡片带 1px 边框，悬停时主色边框微亮",
+        "kpi": "大号等宽数字 + 趋势徽章，异常值使用 error 色高亮",
+        "chart": "Chart.js 折线/柱状图，使用主色与状态色，坐标轴使用 tertiary 文字"
+      },
+      "surfaceAndDepth": {
+        "model": "静态表面以边框和背景分层为主；仅悬浮层使用较深阴影",
+        "shadowRule": "静态卡片阴影 alpha <= 0.05；模态/抽屉等浮动层可适度加深"
+      },
+      "imageryAndIconography": {
+        "imagery": "本页无图片素材，使用 CSS 图表、图标和颜色强调",
+        "icons": "Lucide 风格线性图标，1.5px 描边，tertiary 默认，主色高亮"
+      },
+      "interactionTone": {
+        "motion": "极低动效，仅保留必要悬停反馈，保证长时间观看不疲劳",
+        "feedback": "关键状态变化使用颜色变化而非复杂动画"
+      }
+    },
+    "specsConstraints": null,
+    "sharedProjectShellContract": {
+      "navigationShell": "顶部固定标题栏（系统名称 + 时间 + 全局筛选），左侧窄边导航栏（图标 + 文字标签），主内容区右侧填充",
+      "primaryColorSystem": "单一琥珀主色 #F59E0B，用于 KPI 高亮、选中态、关键按钮",
+      "typographySystem": "PingFang SC / Microsoft YaHei 中文无衬线，等宽数字用于指标",
+      "radiusScale": "sm 4px, md 8px, lg 12px, full 9999px",
+      "surfaceDepthModel": "深色背景 #0B0F17，卡片 #151B26，1px 边框 #1F2937；静态卡片无深阴影",
+      "ctaStyle": "主按钮使用琥珀实心，深色文字；次按钮使用透明背景 + 琥珀边框",
+      "alignmentRules": "12 列网格，左侧边栏 64px，内容区 24px 内边距，卡片间距 16px"
+    },
+    "generationTree": {
+      "root": {
+        "nodeId": "gen-project-shell",
+        "kind": "project-shell",
+        "pageIds": ["page-index"],
+        "output": "partials/project-shell.html",
+        "sharedRegions": ["header", "sidebar", "main-frame"],
+        "privateRegions": [],
+        "mutableSlots": ["pageTitle", "activeNavItem"],
+        "status": "generated",
+        "children": [
+          {
+            "nodeId": "gen-dashboard-main",
+            "kind": "page-leaf",
+            "pageIds": ["page-index"],
+            "output": "pages/index.html",
+            "sharedRegions": ["header", "sidebar", "main-frame"],
+            "privateRegions": ["dashboard-body"],
+            "mutableSlots": ["pageTitle", "activeNavItem"],
+            "status": "generated",
+            "children": []
+          }
+        ]
+      }
+    }
+  },
+  "designSource": {
+    "operatingMode": "free-explore",
+    "libraryIdentity": {
+      "name": null,
+      "id": null,
+      "version": null,
+      "scope": null,
+      "path": null,
+      "versionSource": null
+    },
+    "libraryPath": null,
+    "cssFilePath": "/Users/g2/codedir/myvocation/dashboard-highlight-ui/colors_and_type.css",
+    "brandPrefix": "brand",
+    "themeMode": "dark",
+    "designDecisionSummary": "高对比深色数据大屏，琥珀主色突出关键指标与告警，使用 Chart.js 展示趋势图表，适合中大屏长时间监控。",
+    "componentContractKind": null,
+    "forbiddenInventedComponents": ["layout", "space"],
+    "allowedComponents": ["button", "card", "table", "navigation", "chart", "badge", "stat-card", "tabs"],
+    "styleConstraints": {
+      "radiusMax": 12,
+      "spacingBase": 1,
+      "fontSizeBody": 14,
+      "fontSizeMin": 12,
+      "controlHeightDefault": 36,
+      "controlHeightLarge": 44
+    },
+    "productContext": {
+      "kitType": "dashboard",
+      "productType": "数据监控 / 运营大屏"
+    },
+    "actualTokenNameReference": [
+      { "semanticPurpose": "页面背景", "tokenName": "--brand-background" },
+      { "semanticPurpose": "卡片/面板背景", "tokenName": "--brand-surface" },
+      { "semanticPurpose": "提升表面（悬停/激活）", "tokenName": "--brand-surface-elevated" },
+      { "semanticPurpose": "主要边框", "tokenName": "--brand-border" },
+      { "semanticPurpose": "主要文字", "tokenName": "--brand-text-primary" },
+      { "semanticPurpose": "次要文字", "tokenName": "--brand-text-secondary" },
+      { "semanticPurpose": "辅助文字", "tokenName": "--brand-text-tertiary" },
+      { "semanticPurpose": "品牌主色", "tokenName": "--brand-primary" },
+      { "semanticPurpose": "品牌主色悬停", "tokenName": "--brand-primary-hover" },
+      { "semanticPurpose": "成功状态", "tokenName": "--state-success" },
+      { "semanticPurpose": "警告状态", "tokenName": "--state-warning" },
+      { "semanticPurpose": "错误状态", "tokenName": "--state-error" },
+      { "semanticPurpose": "信息状态", "tokenName": "--state-info" }
+    ]
+  },
+  "pages": [
+    {
+      "nodeId": "page-index",
+      "slug": "index",
+      "title": "中大屏重点信息展示",
+      "htmlSrc": "pages/index.html",
+      "pageIndex": 1,
+      "stateGroupId": null,
+      "stateRole": null,
+      "baseStatePageId": null,
+      "sharedShellContract": ["header", "sidebar", "main-frame"],
+      "mutableRegions": [],
+      "derivedFromHtmlSrc": null,
+      "derivationType": "original",
+      "sourcePageId": null,
+      "sourceHtmlSrc": null,
+      "generationNodeId": "gen-dashboard-main",
+      "generationPath": ["gen-project-shell", "gen-dashboard-main"],
+      "inheritedFragments": ["partials/project-shell.html"],
+      "privateRegions": ["dashboard-body"],
+      "mutableSlots": ["pageTitle", "activeNavItem"],
+      "pageType": "information-dense",
+      "businessScenario": "中大屏数据监控与重点信息展示，用于运营、值班或管理场景快速抓取关键指标和异常告警。",
+      "visualNorthStar": "首屏以超大 KPI 数字和琥珀高亮形成视觉锚点，配合趋势图表和实时告警列表，让关键信息在 3 秒内被识别。",
+      "compositionPattern": "Dashboard grid: 顶部 KPI 指标行 + 中部主图表区 + 底部辅助列表/状态区，左侧边栏提供导航上下文。",
+      "continuityAnchors": ["顶部标题栏 + 左侧边栏导航", "琥珀色 KPI 高亮与状态徽章", "深色卡片 + 1px 边框表面语言"],
+      "libraryRestraintMode": false,
+      "componentPlan": ["stat-card", "chart-panel", "data-table", "navigation", "badge"],
+      "imagePlan": [],
+      "chartsRequired": true,
+      "miniProgramStyle": false,
+      "qualityRisks": ["高密度信息需保持层级清晰", "KPI 数字需足够醒目", "图表颜色需与整体高对比风格协调"]
+    }
+  ],
+  "assets": [],
+  "wiringPlan": [],
+  "hiddenInteractionPlan": []
+}

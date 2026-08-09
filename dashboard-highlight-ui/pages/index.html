@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智控数据大屏</title>
+    <style id="theme-vars">
+/* Dashboard Highlight UI — Brand CSS */
+/* Military-sci-fi dark dashboard for medium/large screens; matches system green/black theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
+:root {
+  /* Primary brand hue: neon green */
+  --brand-primary-50: #E6FFF0;
+  --brand-primary-100: #CCFFE1;
+  --brand-primary-200: #99FFC4;
+  --brand-primary-300: #66FFA8;
+  --brand-primary-400: #33FF8B;
+  --brand-primary-500: #00FF66;
+  --brand-primary-600: #00CC52;
+  --brand-primary-700: #00993D;
+  --brand-primary-800: #006629;
+  --brand-primary-900: #003314;
+
+  /* Neutral scale: cool gray */
+  --brand-neutral-0: #FFFFFF;
+  --brand-neutral-50: #F8FAFC;
+  --brand-neutral-100: #F1F5F9;
+  --brand-neutral-200: #E2E8F0;
+  --brand-neutral-300: #CBD5E1;
+  --brand-neutral-400: #94A3B8;
+  --brand-neutral-500: #64748B;
+  --brand-neutral-600: #475569;
+  --brand-neutral-700: #334155;
+  --brand-neutral-800: #1E293B;
+  --brand-neutral-900: #0F172A;
+  --brand-neutral-950: #020617;
+
+  /* Semantic state colors */
+  --state-success: #00FF66;
+  --state-success-bg: rgba(0, 255, 102, 0.12);
+  --state-warning: #F59E0B;
+  --state-warning-bg: rgba(245, 158, 11, 0.12);
+  --state-error: #FF4D4F;
+  --state-error-bg: rgba(255, 77, 79, 0.12);
+  --state-info: #06B6D4;
+  --state-info-bg: rgba(6, 182, 212, 0.12);
+
+  /* Radius scale */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* Shadow: static surfaces use border/depth; floating layers only may use alpha <= 0.05 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 0 20px rgba(0, 255, 102, 0.15);
+
+  /* Typography */
+  --font-title: "Orbitron", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-body: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", "Consolas", monospace;
+
+  /* Base light tokens (fallback) */
+  --brand-background: var(--brand-neutral-50);
+  --brand-surface: var(--brand-neutral-0);
+  --brand-surface-elevated: var(--brand-neutral-0);
+  --brand-border: var(--brand-neutral-200);
+  --brand-border-subtle: var(--brand-neutral-100);
+  --brand-text-primary: var(--brand-neutral-900);
+  --brand-text-secondary: var(--brand-neutral-600);
+  --brand-text-tertiary: var(--brand-neutral-400);
+  --brand-primary: var(--brand-primary-500);
+  --brand-primary-hover: var(--brand-primary-400);
+  --brand-primary-text: var(--brand-primary-300);
+  --brand-primary-light: rgba(0, 255, 102, 0.15);
+  --brand-primary-subtle: rgba(0, 255, 102, 0.08);
+}
+
+html.dark {
+  --brand-background: #0A0B0A;
+  --brand-surface: #111311;
+  --brand-surface-elevated: #151815;
+  --brand-border: rgba(255, 255, 255, 0.08);
+  --brand-border-subtle: rgba(255, 255, 255, 0.05);
+  --brand-text-primary: #F3F4F6;
+  --brand-text-secondary: #9CA3AF;
+  --brand-text-tertiary: #6B7280;
+  --brand-primary: #00FF66;
+  --brand-primary-hover: #33FF88;
+  --brand-primary-text: #66FFA8;
+  --brand-primary-light: rgba(0, 255, 102, 0.15);
+  --brand-primary-subtle: rgba(0, 255, 102, 0.08);
+}
+
+/* Typography classes */
+.brand-title {
+  font-family: var(--font-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--brand-text-primary);
+}
+
+.brand-body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--brand-text-secondary);
+}
+
+.brand-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Type scale */
+.text-display {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.text-headline {
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.text-title {
+  font-size: 1.125rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.text-body {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.text-caption {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.text-kpi {
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+/* Utility helpers */
+.brand-surface {
+  background-color: var(--brand-surface);
+}
+
+.brand-surface-elevated {
+  background-color: var(--brand-surface-elevated);
+}
+
+.brand-border {
+  border: 1px solid var(--brand-border);
+}
+
+.brand-primary-text {
+  color: var(--brand-primary-text);
+}
+
+.brand-primary-bg {
+  background-color: var(--brand-primary);
+  color: #0A0B0A;
+}
+
+/* Active navigation item aligned with brand theme */
+.nav-item[data-active="true"],
+[data-nav-key][data-active="true"] {
+  color: var(--brand-primary) !important;
+  background-color: var(--brand-primary-subtle) !important;
+}
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+    <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--brand-background);
+    --color-primary: var(--brand-primary);
+    --color-border: var(--brand-border);
+  }
+  @layer base {
+    body { background: var(--brand-background); color: var(--brand-text-primary); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+    </style>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        background-color: currentColor;
+      }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+    <main class="relative min-h-screen">
+        <!-- Shared Region: header -->
+        <header
+            class="fixed top-0 left-0 right-0 h-16 z-50 flex items-center justify-between px-4 lg:px-6 border-b"
+            style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border);">
+            <!-- Left: system title -->
+            <div class="flex items-center gap-3 min-w-0">
+                <span
+                    class="flex items-center justify-center w-8 h-8 rounded-md shrink-0"
+                    style="background-color: var(--brand-primary); color: var(--brand-background);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+                </span>
+                <h1 class="text-title brand-title truncate" style="color: var(--brand-text-primary);">智控数据大屏</h1>
+            </div>
+
+            <!-- Center: current time/date -->
+            <div class="hidden md:flex flex-col items-center justify-center min-w-0 px-4">
+                <time class="text-body brand-mono truncate" style="color: var(--brand-text-primary);">2026-08-07 14:32:00</time>
+                <span class="text-caption brand-body truncate" style="color: var(--brand-text-tertiary);">星期五</span>
+            </div>
+
+            <!-- Right: global filters / user -->
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" class="header-btn hidden sm:inline-flex" aria-label="刷新数据">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 21h5v-5"></path></svg>
+                    <span>刷新</span>
+                </button>
+                <button type="button" class="header-btn" aria-label="打开筛选">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                    <span class="hidden sm:inline">筛选</span>
+                </button>
+                <button type="button" class="header-btn" aria-label="通知">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+                </button>
+                <div
+                    class="w-8 h-8 rounded-full flex items-center justify-center text-caption brand-title shrink-0"
+                    style="background-color: var(--brand-border); color: var(--brand-text-primary);"
+                    aria-label="用户头像占位">U</div>
+            </div>
+        </header>
+
+        <!-- Shared Region: sidebar -->
+        <aside
+            class="fixed top-16 left-0 bottom-0 w-16 z-40 flex flex-col items-center py-4 border-r"
+            style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border);">
+            <nav class="flex flex-col items-center gap-1 w-full" aria-label="主导航">
+                <!-- SLOT: activeNavItem -->
+                <a
+                    href="./index.html"
+                    data-nav-key="dashboard"
+                    data-active="true"
+                    class="nav-item group"
+                    aria-current="page">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+                    <span class="text-caption truncate">总览</span>
+                </a>
+                <!-- /SLOT: activeNavItem -->
+
+                <a
+                    href="#"
+                    data-nav-key="monitor"
+                    class="nav-item group"
+                    style="color: var(--brand-text-secondary);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+                    <span class="text-caption truncate">监控</span>
+                </a>
+
+                <a
+                    href="#"
+                    data-nav-key="alerts"
+                    class="nav-item group"
+                    style="color: var(--brand-text-secondary);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                    <span class="text-caption truncate">告警</span>
+                </a>
+
+                <a
+                    href="#"
+                    data-nav-key="settings"
+                    class="nav-item group"
+                    style="color: var(--brand-text-secondary);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <span class="text-caption truncate">设置</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Shared Region: main-frame -->
+        <div
+            class="ml-16 mt-16 min-h-[calc(100vh-64px)] flex flex-col"
+            style="background-color: var(--brand-background);">
+            <!-- Page header with mutable title slot -->
+            <section
+                class="px-6 py-4 border-b flex items-center justify-between min-h-[64px]"
+                style="border-color: var(--brand-border);">
+                <div class="min-w-0">
+                    <!-- SLOT: pageTitle -->
+                    <h2 class="text-headline brand-title truncate" style="color: var(--brand-text-primary);">运营监控总览</h2>
+                    <!-- /SLOT: pageTitle -->
+                </div>
+                <div class="hidden sm:flex items-center gap-2 text-caption shrink-0" style="color: var(--brand-text-secondary);">
+                    <span class="w-2 h-2 rounded-full" style="background-color: var(--state-success);"></span>
+                    <span class="truncate">系统正常</span>
+                    <span class="mx-1" style="color: var(--brand-border);">|</span>
+                    <span class="brand-mono truncate">刷新 14:30:05</span>
+                </div>
+            </section>
+
+            <!-- PRIVATE-REGION: dashboard-body -->
+            <div class="flex-1 p-4 lg:p-6 space-y-4 lg:space-y-6">
+                <!-- KPI Row -->
+                <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-label="核心指标">
+                    <!-- 今日订单量 -->
+                    <article
+                        class="border p-4 flex flex-col justify-between gap-3"
+                        style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border); border-radius: var(--radius-lg);">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-caption truncate" style="color: var(--brand-text-secondary);">今日订单量</span>
+                            <span
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap"
+                                style="background-color: var(--state-success-bg); color: var(--state-success);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg>
+                                8.2%
+                            </span>
+                        </div>
+                        <div class="brand-mono truncate brand-primary-text" style="font-size: 2rem; font-weight: 800; line-height: 1;">12,847</div>
+                    </article>
+
+                    <!-- 实时交易额 -->
+                    <article
+                        class="border p-4 flex flex-col justify-between gap-3"
+                        style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border); border-radius: var(--radius-lg);">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-caption truncate" style="color: var(--brand-text-secondary);">实时交易额</span>
+                            <span
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap"
+                                style="background-color: var(--state-success-bg); color: var(--state-success);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg>
+                                12.5%
+                            </span>
+                        </div>
+                        <div class="brand-mono truncate brand-primary-text" style="font-size: 2rem; font-weight: 800; line-height: 1;">¥2,458,320</div>
+                    </article>
+
+                    <!-- 在线设备数 -->
+                    <article
+                        class="border p-4 flex flex-col justify-between gap-3"
+                        style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border); border-radius: var(--radius-lg);">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-caption truncate" style="color: var(--brand-text-secondary);">在线设备数</span>
+                            <span
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap"
+                                style="background-color: var(--state-error-bg); color: var(--state-error);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+                                1.3%
+                            </span>
+                        </div>
+                        <div class="brand-mono truncate" style="color: var(--brand-text-primary); font-size: 2rem; font-weight: 800; line-height: 1;">3,642</div>
+                    </article>
+
+                    <!-- 异常告警 -->
+                    <article
+                        class="border p-4 flex flex-col justify-between gap-3"
+                        style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border); border-radius: var(--radius-lg);">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-caption truncate" style="color: var(--brand-text-secondary);">异常告警</span>
+                            <span
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap"
+                                style="background-color: var(--state-warning-bg); color: var(--state-warning);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                                2 条待处理
+                            </span>
+                        </div>
+                        <div class="brand-mono truncate brand-primary-text" style="font-size: 2rem; font-weight: 800; line-height: 1;">7</div>
+                    </article>
+                </section>
+
+                <!-- Charts Row -->
+                <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" aria-label="趋势与分布">
+                    <!-- Line chart -->
+                    <article
+                        class="lg:col-span-2 border p-4 flex flex-col gap-4"
+                        style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border); border-radius: var(--radius-lg);">
+                        <div class="flex items-center justify-between gap-4 min-w-0">
+                            <h3 class="text-title brand-title truncate" style="color: var(--brand-text-primary);">24小时交易趋势</h3>
+                            <div class="flex items-center gap-3 shrink-0 text-caption">
+                                <span class="inline-flex items-center gap-1.5 truncate">
+                                    <span class="w-2 h-2 rounded-full" style="background-color: var(--brand-primary);"></span>
+                                    <span style="color: var(--brand-text-secondary);">交易额</span>
+                                </span>
+                                <span class="inline-flex items-center gap-1.5 truncate">
+                                    <span class="w-2 h-2 rounded-full" style="background-color: var(--brand-primary-300);"></span>
+                                    <span style="color: var(--brand-text-secondary);">订单量</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="relative w-full min-h-[280px] lg:min-h-[320px] flex-1">
+                            <canvas id="trendChart" width="800" height="320"></canvas>
+                        </div>
+                    </article>
+
+                    <!-- Donut chart -->
+                    <article
+                        class="border p-4 flex flex-col gap-4"
+                        style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border); border-radius: var(--radius-lg);">
+                        <h3 class="text-title brand-title truncate" style="color: var(--brand-text-primary);">告警类型分布</h3>
+                        <div class="relative w-full min-h-[280px] lg:min-h-[320px] flex-1 flex items-center justify-center">
+                            <canvas id="alertChart" width="320" height="320"></canvas>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- Bottom Row -->
+                <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6" aria-label="实时告警与系统状态">
+                    <!-- Alert table -->
+                    <article
+                        class="border p-4 flex flex-col gap-4"
+                        style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border); border-radius: var(--radius-lg);">
+                        <div class="flex items-center justify-between gap-4 min-w-0">
+                            <h3 class="text-title brand-title truncate" style="color: var(--brand-text-primary);">实时告警</h3>
+                            <a
+                                href="#"
+                                class="inline-flex items-center gap-1 text-caption font-medium whitespace-nowrap shrink-0"
+                                style="color: var(--brand-primary);">
+                                查看全部
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                            </a>
+                        </div>
+                        <div class="overflow-x-auto -mx-4 px-4">
+                            <table class="w-full text-left text-body" style="min-width: 540px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--brand-border);">
+                                        <th class="py-3 pr-4 font-medium whitespace-nowrap" style="color: var(--brand-text-tertiary); width: 15%;">时间</th>
+                                        <th class="py-3 pr-4 font-medium whitespace-nowrap" style="color: var(--brand-text-tertiary); width: 14%;">设备</th>
+                                        <th class="py-3 pr-4 font-medium whitespace-nowrap" style="color: var(--brand-text-tertiary); width: 12%;">级别</th>
+                                        <th class="py-3 pr-4 font-medium" style="color: var(--brand-text-tertiary); width: 37%;">描述</th>
+                                        <th class="py-3 font-medium whitespace-nowrap" style="color: var(--brand-text-tertiary); width: 12%;">状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid var(--brand-border-subtle);">
+                                        <td class="py-3 pr-4 whitespace-nowrap brand-mono truncate" style="color: var(--brand-text-secondary);">14:28:33</td>
+                                        <td class="py-3 pr-4 whitespace-nowrap truncate" style="color: var(--brand-text-primary);">GW-BJ-09</td>
+                                        <td class="py-3 pr-4">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-error-bg); color: var(--state-error);">严重</span>
+                                        </td>
+                                        <td class="py-3 pr-4 truncate" style="color: var(--brand-text-secondary);">核心网关响应超时，丢包率 18%</td>
+                                        <td class="py-3">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-warning-bg); color: var(--state-warning);">待处理</span>
+                                        </td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--brand-border-subtle);">
+                                        <td class="py-3 pr-4 whitespace-nowrap brand-mono truncate" style="color: var(--brand-text-secondary);">14:25:11</td>
+                                        <td class="py-3 pr-4 whitespace-nowrap truncate" style="color: var(--brand-text-primary);">DB-SH-02</td>
+                                        <td class="py-3 pr-4">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-warning-bg); color: var(--state-warning);">警告</span>
+                                        </td>
+                                        <td class="py-3 pr-4 truncate" style="color: var(--brand-text-secondary);">数据库连接池使用率超过 85%</td>
+                                        <td class="py-3">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-success-bg); color: var(--state-success);">已恢复</span>
+                                        </td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--brand-border-subtle);">
+                                        <td class="py-3 pr-4 whitespace-nowrap brand-mono truncate" style="color: var(--brand-text-secondary);">14:19:07</td>
+                                        <td class="py-3 pr-4 whitespace-nowrap truncate" style="color: var(--brand-text-primary);">CDN-HZ-15</td>
+                                        <td class="py-3 pr-4">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-info-bg); color: var(--state-info);">提示</span>
+                                        </td>
+                                        <td class="py-3 pr-4 truncate" style="color: var(--brand-text-secondary);">节点缓存命中率下降 5%</td>
+                                        <td class="py-3">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-success-bg); color: var(--state-success);">已恢复</span>
+                                        </td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid var(--brand-border-subtle);">
+                                        <td class="py-3 pr-4 whitespace-nowrap brand-mono truncate" style="color: var(--brand-text-secondary);">14:12:49</td>
+                                        <td class="py-3 pr-4 whitespace-nowrap truncate" style="color: var(--brand-text-primary);">APP-GZ-31</td>
+                                        <td class="py-3 pr-4">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-error-bg); color: var(--state-error);">严重</span>
+                                        </td>
+                                        <td class="py-3 pr-4 truncate" style="color: var(--brand-text-secondary);">应用服务内存占用突增 42%</td>
+                                        <td class="py-3">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-warning-bg); color: var(--state-warning);">待处理</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3 pr-4 whitespace-nowrap brand-mono truncate" style="color: var(--brand-text-secondary);">14:08:22</td>
+                                        <td class="py-3 pr-4 whitespace-nowrap truncate" style="color: var(--brand-text-primary);">LB-SZ-06</td>
+                                        <td class="py-3 pr-4">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-warning-bg); color: var(--state-warning);">警告</span>
+                                        </td>
+                                        <td class="py-3 pr-4 truncate" style="color: var(--brand-text-secondary);">负载均衡后端实例健康检查异常</td>
+                                        <td class="py-3">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-caption font-medium whitespace-nowrap" style="background-color: var(--state-success-bg); color: var(--state-success);">已恢复</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+
+                    <!-- System status -->
+                    <article
+                        class="border p-4 flex flex-col gap-4"
+                        style="background-color: var(--brand-surface-elevated); border-color: var(--brand-border); border-radius: var(--radius-lg);">
+                        <h3 class="text-title brand-title truncate" style="color: var(--brand-text-primary);">系统健康度</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- Server health cards -->
+                            <div
+                                class="border p-3 flex flex-col gap-2"
+                                style="background-color: var(--brand-surface); border-color: var(--brand-border-subtle); border-radius: var(--radius-md);">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-caption truncate" style="color: var(--brand-text-secondary);">主数据库</span>
+                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--state-success);"></span>
+                                </div>
+                                <span class="text-title brand-mono truncate" style="color: var(--brand-text-primary);">99.98%</span>
+                                <span class="text-caption truncate" style="color: var(--brand-text-tertiary);">延迟 12ms</span>
+                            </div>
+                            <div
+                                class="border p-3 flex flex-col gap-2"
+                                style="background-color: var(--brand-surface); border-color: var(--brand-border-subtle); border-radius: var(--radius-md);">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-caption truncate" style="color: var(--brand-text-secondary);">缓存集群</span>
+                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--state-success);"></span>
+                                </div>
+                                <span class="text-title brand-mono truncate" style="color: var(--brand-text-primary);">99.95%</span>
+                                <span class="text-caption truncate" style="color: var(--brand-text-tertiary);">命中率 94%</span>
+                            </div>
+                            <div
+                                class="border p-3 flex flex-col gap-2"
+                                style="background-color: var(--brand-surface); border-color: var(--brand-border-subtle); border-radius: var(--radius-md);">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-caption truncate" style="color: var(--brand-text-secondary);">消息队列</span>
+                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--state-warning);"></span>
+                                </div>
+                                <span class="text-title brand-mono truncate" style="color: var(--brand-text-primary);">97.20%</span>
+                                <span class="text-caption truncate" style="color: var(--brand-text-tertiary);">堆积 1.2k</span>
+                            </div>
+                            <div
+                                class="border p-3 flex flex-col gap-2"
+                                style="background-color: var(--brand-surface); border-color: var(--brand-border-subtle); border-radius: var(--radius-md);">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-caption truncate" style="color: var(--brand-text-secondary);">支付网关</span>
+                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--state-success);"></span>
+                                </div>
+                                <span class="text-title brand-mono truncate" style="color: var(--brand-text-primary);">99.99%</span>
+                                <span class="text-caption truncate" style="color: var(--brand-text-tertiary);">TPS 3,420</span>
+                            </div>
+                        </div>
+
+                        <!-- Region status -->
+                        <div
+                            class="border p-3 flex flex-col gap-3"
+                            style="background-color: var(--brand-surface); border-color: var(--brand-border-subtle); border-radius: var(--radius-md);">
+                            <h4 class="text-body font-medium truncate" style="color: var(--brand-text-primary);">区域节点状态</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--state-success);"></span>
+                                    <span class="text-caption truncate" style="color: var(--brand-text-secondary);">华北</span>
+                                </div>
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--state-success);"></span>
+                                    <span class="text-caption truncate" style="color: var(--brand-text-secondary);">华东</span>
+                                </div>
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--state-warning);"></span>
+                                    <span class="text-caption truncate" style="color: var(--brand-text-secondary);">华南</span>
+                                </div>
+                                <div class="flex items-center gap-2 truncate">
+                                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: var(--state-success);"></span>
+                                    <span class="text-caption truncate" style="color: var(--brand-text-secondary);">西南</span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+            </div>
+            <!-- /PRIVATE-REGION: dashboard-body -->
+        </div>
+    </main>
+
+    <style>
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 56px;
+            gap: 4px;
+            transition: color 150ms ease, background-color 150ms ease;
+        }
+        .nav-item:hover {
+            color: var(--brand-text-primary) !important;
+            background-color: var(--brand-surface);
+        }
+        [data-nav-key][data-active="true"] {
+            color: var(--brand-primary) !important;
+            background-color: var(--state-warning-bg);
+        }
+        .header-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--radius-md);
+            font-size: 0.75rem;
+            line-height: 1;
+            color: var(--brand-text-secondary);
+            background-color: transparent;
+            border: 1px solid var(--brand-border);
+            transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
+        }
+        .header-btn:hover {
+            color: var(--brand-text-primary);
+            border-color: var(--brand-text-tertiary);
+            background-color: var(--brand-surface);
+        }
+    </style>
+    <script>
+        lucide.createIcons();
+
+        // Read brand CSS variables for chart theming
+        const cs = getComputedStyle(document.documentElement);
+        const brandPrimary = cs.getPropertyValue('--brand-primary').trim();
+        const brandPrimary300 = cs.getPropertyValue('--brand-primary-300').trim();
+        const brandTextPrimary = cs.getPropertyValue('--brand-text-primary').trim();
+        const brandTextSecondary = cs.getPropertyValue('--brand-text-secondary').trim();
+        const brandTextTertiary = cs.getPropertyValue('--brand-text-tertiary').trim();
+        const brandBorder = cs.getPropertyValue('--brand-border').trim();
+        const brandSurfaceElevated = cs.getPropertyValue('--brand-surface-elevated').trim();
+        const stateError = cs.getPropertyValue('--state-error').trim();
+        const stateWarning = cs.getPropertyValue('--state-warning').trim();
+        const stateInfo = cs.getPropertyValue('--state-info').trim();
+        const stateSuccess = cs.getPropertyValue('--state-success').trim();
+
+        Chart.defaults.color = brandTextSecondary;
+        Chart.defaults.borderColor = brandBorder;
+        Chart.defaults.font.family = '"SF Mono", "JetBrains Mono", "Fira Code", "Consolas", monospace';
+
+        // 24-hour trend line chart
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        const hours = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+        const transactionData = [120, 95, 80, 70, 65, 85, 140, 210, 280, 310, 295, 320, 340, 360, 330, 315, 340, 380, 410, 390, 360, 300, 220, 160];
+        const orderData = [45, 32, 28, 24, 22, 30, 52, 78, 105, 118, 112, 125, 132, 142, 128, 122, 135, 152, 168, 158, 145, 118, 88, 62];
+
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: hours,
+                datasets: [
+                    {
+                        label: '交易额（万元）',
+                        data: transactionData,
+                        borderColor: brandPrimary,
+                        backgroundColor: 'color-mix(in srgb, ' + brandPrimary + ' 12%, transparent)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '订单量（百单）',
+                        data: orderData,
+                        borderColor: brandPrimary300,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [4, 4],
+                        tension: 0.35,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: brandSurfaceElevated,
+                        titleColor: brandTextPrimary,
+                        bodyColor: brandTextSecondary,
+                        borderColor: brandBorder,
+                        borderWidth: 1,
+                        padding: 10
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { maxTicksLimit: 8, color: brandTextTertiary }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: brandBorder },
+                        ticks: { color: brandTextTertiary }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        ticks: { color: brandTextTertiary }
+                    }
+                }
+            }
+        });
+
+        // Alert type distribution donut chart
+        const alertCtx = document.getElementById('alertChart').getContext('2d');
+        new Chart(alertCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['设备异常', '网络延迟', '安全事件', '业务告警'],
+                datasets: [{
+                    data: [38, 27, 18, 17],
+                    backgroundColor: [stateError, stateWarning, stateInfo, stateSuccess],
+                    borderColor: brandSurfaceElevated,
+                    borderWidth: 2,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: brandTextSecondary, padding: 16, usePointStyle: true, pointStyle: 'circle' }
+                    },
+                    tooltip: {
+                        backgroundColor: brandSurfaceElevated,
+                        bodyColor: brandTextPrimary,
+                        borderColor: brandBorder,
+                        borderWidth: 1,
+                        padding: 10
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
