@@ -2,6 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import ThemeListPage from '../ThemeListPage.jsx';
 import PhaseListPage from '../PhaseListPage.jsx';
 import PlanManagementPage from '../PlanManagementPage.jsx';
+import TaskExecutionPage from '../TaskExecutionPage.jsx';
+import MistakesPage from '../MistakesPage.jsx';
 
 // ── Menu Configuration ──
 const MENU_CONFIG = [
@@ -44,7 +46,7 @@ const MENU_CONFIG = [
       </svg>
     ),
     children: [
-      { id: 'action-list', label: '行动清单' },
+      { id: 'task-execution', label: '任务执行' },
       { id: 'action-statistics', label: '行动统计' },
     ],
   },
@@ -57,7 +59,8 @@ const MENU_CONFIG = [
       </svg>
     ),
     children: [
-      { id: 'effect-evaluation', label: '效果评估' },
+      { id: 'effect-evaluation', label: '阶段成果' },
+      { id: 'phase-checkpoints', label: '阶段检查点' },
     ],
   },
   {
@@ -69,7 +72,7 @@ const MENU_CONFIG = [
       </svg>
     ),
     children: [
-      { id: 'error-analysis', label: '错题分析' },
+      { id: 'error-analysis', label: '错题管理' },
       { id: 'key-knowledge', label: '重点知识' },
     ],
   },
@@ -140,10 +143,11 @@ const PAGE_MAP = {
   'theme-list': { title: '主题列表', description: '管理和浏览所有主题，创建、编辑和删除主题条目' },
   'phase-planning': { title: '阶段规划', description: '为每个主题制定阶段目标和里程碑计划' },
   'plan-management': { title: '计划管理', description: '管理年度、月度计划，追踪执行进度' },
-  'action-list': { title: '行动清单', description: '查看和管理每日行动项，记录执行情况' },
+  'task-execution': { title: '任务执行', description: '执行每日任务打卡，记录执行情况' },
   'action-statistics': { title: '行动统计', description: '统计行动执行数据，分析完成率和趋势' },
-  'effect-evaluation': { title: '效果评估', description: '评估各项计划和行动的执行效果' },
-  'error-analysis': { title: '错题分析', description: '收集和分析错题，识别薄弱环节' },
+  'effect-evaluation': { title: '阶段成果', description: '评估各项计划和行动的执行效果' },
+  'phase-checkpoints': { title: '阶段检查点', description: '查看和管理阶段检查点，追踪关键里程碑' },
+  'error-analysis': { title: '错题管理', description: '收集和管理错题，识别薄弱环节' },
   'key-knowledge': { title: '重点知识', description: '整理和回顾重点知识，强化记忆' },
   'user-management': { title: '用户管理', description: '管理系统用户，分配角色和权限' },
   'system-config': { title: '系统配置', description: '配置系统参数、通知和基础设置' },
@@ -357,6 +361,10 @@ export default function AdminLayout({ onBack, onNavigate, onLogout }) {
             <PhaseListPage embedded onNavigate={onNavigate} />
           ) : activePage === 'plan-management' ? (
             <PlanManagementPage embedded onNavigate={onNavigate} />
+          ) : activePage === 'task-execution' ? (
+            <TaskExecutionPage embedded onNavigate={onNavigate} mode="today" />
+          ) : activePage === 'error-analysis' ? (
+            <MistakesPage embedded />
           ) : (
             <>
               <div className="admin-content__header">

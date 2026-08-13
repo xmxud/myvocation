@@ -17,10 +17,10 @@ async def get_node(db, node_id: int) -> dict | None:
 async def create_node(db, node: dict, user_id: int) -> dict:
     last_id, _ = await execute(
         db,
-        """INSERT INTO planning_nodes (node_type, title, codename, description, parent_id, priority, task_type, tag, extra_data, user_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO planning_nodes (node_type, title, codename, description, parent_id, priority, tag, extra_data, user_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (node["node_type"], node["title"], node.get("codename"), node.get("description"),
-         node.get("parent_id"), node.get("priority"), node.get("task_type"),
+         node.get("parent_id"), node.get("priority"),
          node.get("tag"), node.get("extra_data"), user_id),
     )
     return await get_node(db, last_id)
@@ -29,8 +29,8 @@ async def create_node(db, node: dict, user_id: int) -> dict:
 async def update_node(db, node_id: int, updates: dict) -> dict | None:
     fields = []
     values = []
-    for key in ["title", "codename", "description", "is_completed", "progress_percent",
-                "priority", "task_type", "tag", "extra_data", "user_id"]:
+    for key in ["title", "codename", "description", "is_completed",
+                "priority", "tag", "extra_data", "user_id"]:
         if key in updates and updates[key] is not None:
             fields.append(f"{key} = ?")
             values.append(updates[key])

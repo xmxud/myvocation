@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { themesApi, phasesApi, executionsApi, nodesApi } from '../src/utils/api.js';
 import DatePicker from '../src/components/DatePicker.jsx';
+import Modal from '../src/components/Modal.jsx';
 
 function EditIcon() {
   return (
@@ -44,6 +45,11 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => { themesApi.getThemes(1,50).then(d=>setThemes(d.themes||[])).catch(()=>{}); },[]);
 
@@ -58,6 +64,7 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
   const loadTasks = useCallback(async () => {
     if (!selectedThemeId) { setTasks([]); return; }
     setLoading(true);
+    setPage(1);
     try {
       const all = await executionsApi.getExecutions(selectedThemeId);
       let filtered = selectedPhaseId ? (all||[]).filter(t=>String(t.phase_id)===String(selectedPhaseId)) : (all||[]);
@@ -120,11 +127,35 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
     finally { setClearing(false); }
   };
 
+  // 从 Excel 模版导入学习计划（页签名按阶段编号匹配阶段，可跨阶段导入）
+  const handleImportExcel = async () => {
+    if (!importFile || importing) return;
+    setImporting(true); setImportResult(null); setError('');
+    try {
+      const payload = await executionsApi.importPlanExcel(Number(selectedThemeId), importFile);
+      const d = payload.data || {};
+      const lines = (d.sheets || []).map(s => `✓ ${s.sheet} → ${s.phase}（${s.count} 项）`);
+      if ((d.skipped || []).length) lines.push(`跳过页签：${d.skipped.join('、')}`);
+      alert(`导入完成！${payload.message}${lines.length ? '\n' + lines.join('\n') : ''}`);
+      setImportOpen(false); setImportFile(null);
+      await loadTasks();
+    } catch(e) { setImportResult({ error: e.message || '导入失败' }); }
+    finally { setImporting(false); }
+  };
+
   const getFocusName = (nid) => { const f = focusItems.find(x=>x.id===nid); return f?f.title:null; };
   const selectedPhase = phases.find(p=>String(p.id)===String(selectedPhaseId));
 
+  // 列表分页（前端分页，数据一次加载）
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
+  const curPage = Math.min(page, totalPages);
+  const pagedTasks = tasks.slice((curPage-1)*PAGE_SIZE, curPage*PAGE_SIZE);
+
   const thStyle = {display:'flex',gap:'0.5rem',flexWrap:'wrap'};
-  const inputStyle = (w) => ({width:w,padding:'8px 10px'});
+  // 工具栏按钮统一采用与「AI生成计划」一致的描边样式
+  const btnStyle = {borderColor:'var(--color-border-primary)',color:'var(--color-text-accent)'};
+  const fieldLabel = {display:'flex',flexDirection:'column',gap:'4px',color:'var(--color-text-secondary)',fontSize:'0.8125rem'};
 
   return (
     <div className={embedded?'':'plans-page'}>
@@ -143,11 +174,15 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
             {selectedThemeId && <DatePicker value={selectedDate} onChange={setSelectedDate} placeholder="按日期过滤" width={140}/>}
             {error && <span style={{color:'var(--state-error)',fontSize:'0.8125rem'}}>{error}</span>}
           </div>
-          {selectedPhaseId && <div style={thStyle}>
-            <button className="action-btn" style={{borderColor:'var(--color-border-primary)',color:'var(--color-text-accent)'}} onClick={handleAiGenerate} disabled={generating}>{generating?'⏳ 生成中...':'🤖 AI生成计划'}</button>
-            <label className="action-btn" style={{cursor:'pointer'}}>📤 导入计划<input type="file" accept=".xlsx" style={{display:'none'}} disabled/></label>
-            <button className="cta-button" onClick={openAdd} style={{padding:'8px 20px',fontSize:'0.8125rem'}}>+ 新增任务</button>
-            <button className="action-btn action-btn--danger" onClick={handleClearPhase} disabled={clearing} style={{padding:'8px 16px',fontSize:'0.8125rem'}}>{clearing?'清空中...':'🗑 清空阶段计划'}</button>
+          {selectedThemeId && <div style={thStyle}>
+            {selectedPhaseId && <button className="action-btn" style={btnStyle} onClick={openAdd}>+ 新增任务</button>}
+            <button className="action-btn" style={btnStyle} onClick={()=>{setImportOpen(true);setImportFile(null);setImportResult(null);}}>📤 导入计划</button>
+            {selectedPhaseId && <a className="action-btn" style={{...btnStyle,textDecoration:'none'}} href={executionsApi.exportPlanUrl(Number(selectedPhaseId))} download>📥 导出计划</a>}
+            <a className="action-btn" style={{...btnStyle,textDecoration:'none'}}
+              href={executionsApi.exportDailyUrl(Number(selectedThemeId), selectedDate || new Date().toISOString().slice(0,10))}
+              download title={selectedDate ? `导出 ${selectedDate} 的当日计划表` : '导出今天的当日计划表（可用日期过滤切换）'}>🖨 导出当日计划</a>
+            {selectedPhaseId && <button className="action-btn" style={btnStyle} onClick={handleAiGenerate} disabled={generating}>{generating?'⏳ 生成中...':'🤖 AI生成计划'}</button>}
+            {selectedPhaseId && <button className="action-btn" style={btnStyle} onClick={handleClearPhase} disabled={clearing}>{clearing?'清空中...':'🗑 清空计划'}</button>}
           </div>}
         </div>
 
@@ -156,26 +191,14 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
           <span style={{color:selectedPhase.status==='active'?'var(--color-text-accent)':'inherit'}}>
             {selectedPhase.status==='active'?'进行中':selectedPhase.status==='completed'?'已完成':'即将开始'}</span></div>}
 
-        {(selectedPhaseId || selectedDate) ? <div style={{background:'var(--color-bg-elevated)',border:'1px solid var(--color-border-default)',overflow:'hidden'}}>
+        {(selectedPhaseId || selectedDate) ? <>
+          <div style={{background:'var(--color-bg-elevated)',border:'1px solid var(--color-border-default)',overflow:'hidden'}}>
           <table className="data-table"><thead><tr>
             <th>✓</th><th>任务描述</th><th>重点项</th><th>计划时间</th><th>时长</th><th>日期</th><th>备注</th><th>操作</th>
           </tr></thead><tbody>
           {loading ? <tr><td colSpan={8} className="text-center">加载中...</td></tr>
-          : tasks.length===0 && editingId!=='new' ? <tr><td colSpan={8} className="text-center">暂无计划任务</td></tr>
-          : <>
-            {tasks.map(task => editingId===task.id ? (
-              <tr key={task.id} style={{background:'var(--color-primary-light)'}}>
-                <td><input type="checkbox" checked={editForm.is_done||false} onChange={e=>setEditForm({...editForm,is_done:e.target.checked})}/></td>
-                <td><input className="form-input" value={editForm.title||''} onChange={e=>setEditForm({...editForm,title:e.target.value})}/></td>
-                <td><select className="filter-select" style={inputStyle(130)} value={editForm.node_id||''} onChange={e=>setEditForm({...editForm,node_id:e.target.value})}>
-                  <option value="">—</option>{focusItems.map(f=><option key={f.id} value={f.id}>{f.title}</option>)}</select></td>
-                <td><input className="form-input" type="time" value={editForm.planned_start_time||''} onChange={e=>setEditForm({...editForm,planned_start_time:e.target.value})} style={inputStyle(100)}/></td>
-                <td><input className="form-input" type="number" value={editForm.planned_duration||''} onChange={e=>setEditForm({...editForm,planned_duration:e.target.value})} style={inputStyle(60)}/></td>
-                <td><input className="form-input" type="date" value={editForm.execution_date||''} onChange={e=>setEditForm({...editForm,execution_date:e.target.value})} style={inputStyle(120)}/></td>
-                <td><input className="form-input" value={editForm.notes||''} onChange={e=>setEditForm({...editForm,notes:e.target.value})} style={inputStyle(100)}/></td>
-                <td><div className="action-buttons"><button className="action-btn" onClick={saveTask} disabled={saving}>保存</button><button className="action-btn" onClick={cancelEdit}>取消</button></div></td>
-              </tr>
-            ) : (
+          : pagedTasks.length===0 ? <tr><td colSpan={8} className="text-center">暂无计划任务</td></tr>
+          : pagedTasks.map(task => (
               <tr key={task.id}>
                 <td><span className={`status-badge ${task.is_done?'status-badge--active':'status-badge--done'}`}>{task.is_done?'✓':'○'}</span></td>
                 <td style={{fontWeight:500}}>{task.title}</td>
@@ -187,20 +210,71 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
                 <td><div className="action-buttons"><button className="action-btn" onClick={()=>startEdit(task)}><EditIcon/></button><button className="action-btn action-btn--danger" onClick={()=>handleDelete(task.id)}><DeleteIcon/></button></div></td>
               </tr>
             ))}
-            {editingId==='new' && <tr style={{background:'var(--color-primary-light)'}}>
-              <td><input type="checkbox" checked={editForm.is_done||false} onChange={e=>setEditForm({...editForm,is_done:e.target.checked})}/></td>
-              <td><input className="form-input" value={editForm.title||''} onChange={e=>setEditForm({...editForm,title:e.target.value})} placeholder="任务描述" autoFocus/></td>
-              <td><select className="filter-select" style={inputStyle(130)} value={editForm.node_id||''} onChange={e=>setEditForm({...editForm,node_id:e.target.value})}><option value="">—</option>{focusItems.map(f=><option key={f.id} value={f.id}>{f.title}</option>)}</select></td>
-              <td><input className="form-input" type="time" value={editForm.planned_start_time||''} onChange={e=>setEditForm({...editForm,planned_start_time:e.target.value})} style={inputStyle(100)}/></td>
-              <td><input className="form-input" type="number" value={editForm.planned_duration||''} onChange={e=>setEditForm({...editForm,planned_duration:e.target.value})} style={inputStyle(60)} placeholder="min"/></td>
-              <td><input className="form-input" type="date" value={editForm.execution_date||''} onChange={e=>setEditForm({...editForm,execution_date:e.target.value})} style={inputStyle(120)}/></td>
-              <td><input className="form-input" value={editForm.notes||''} onChange={e=>setEditForm({...editForm,notes:e.target.value})} style={inputStyle(100)} placeholder="备注"/></td>
-              <td><div className="action-buttons"><button className="action-btn" onClick={saveTask} disabled={saving}>保存</button><button className="action-btn" onClick={cancelEdit}>取消</button></div></td>
-            </tr>}
-          </>}
           </tbody></table>
-        </div> : <div className="drawer-empty" style={{border:'1px solid var(--color-border-default)',background:'var(--color-bg-elevated)'}}>请选择主题和阶段（或选择日期）查看计划</div>}
+          </div>
+          {totalPages>1 && <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:'0.75rem',fontSize:'0.8125rem',color:'var(--color-text-tertiary)'}}>
+            <span style={{fontFamily:'var(--font-mono)'}}>共 {tasks.length} 条 · 第 {curPage} / {totalPages} 页</span>
+            <div style={{display:'flex',gap:'0.5rem'}}>
+              <button className="action-btn" disabled={curPage<=1} onClick={()=>setPage(p=>Math.max(1,p-1))}>← 上一页</button>
+              <button className="action-btn" disabled={curPage>=totalPages} onClick={()=>setPage(p=>Math.min(totalPages,p+1))}>下一页 →</button>
+            </div>
+          </div>}
+        </> : <div className="drawer-empty" style={{border:'1px solid var(--color-border-default)',background:'var(--color-bg-elevated)'}}>请选择主题和阶段（或选择日期）查看计划</div>}
       </div>
+      <Modal title="导入计划" open={importOpen} onClose={()=>setImportOpen(false)} panelStyle={{maxWidth:'34rem'}}
+        footer={<>
+          <button className="action-btn" onClick={()=>setImportOpen(false)}>关闭</button>
+          <button className="cta-button" style={{padding:'8px 20px',fontSize:'0.8125rem'}} onClick={handleImportExcel} disabled={!importFile||importing}>{importing?'导入中...':'开始导入'}</button>
+        </>}>
+        <div style={{display:'flex',flexDirection:'column',gap:'1rem',fontSize:'0.8125rem',color:'var(--color-text-secondary)'}}>
+          <p style={{margin:0,lineHeight:1.7}}>
+            请按模版填写每周计划：每个周计划页签的名称需以阶段编号开头（如「1.2. 暑假第二周（8.8-8.15）」），系统据此关联到对应阶段；
+            页签内每行首列为时间段、每列首行为日期，每个非空格子将导入为一条任务。重复导入会覆盖该阶段此前导入的任务。
+          </p>
+          <a className="action-btn" style={{alignSelf:'flex-start',textDecoration:'none'}} href={executionsApi.planTemplateUrl} download="学习计划模版.xlsx">⬇ 下载模版</a>
+          <div style={{display:'flex',alignItems:'center',gap:'0.75rem',flexWrap:'wrap'}}>
+            <label className="action-btn" style={{cursor:'pointer'}}>选择文件
+              <input type="file" accept=".xlsx" style={{display:'none'}} onChange={e=>{setImportFile(e.target.files?.[0]||null);setImportResult(null);}}/>
+            </label>
+            <span style={{fontFamily:'var(--font-mono)',fontSize:'0.75rem',color:'var(--color-text-tertiary)'}}>{importFile?importFile.name:'未选择文件（.xlsx）'}</span>
+          </div>
+          {importResult?.error && <div style={{padding:'0.75rem 1rem',border:'1px solid var(--color-border-subtle)',background:'var(--color-bg-sunken)',lineHeight:1.7}}>
+            <span style={{color:'var(--state-error)'}}>导入失败：{importResult.error}</span>
+          </div>}
+        </div>
+      </Modal>
+      <Modal title={editForm._new?'新增任务':'编辑任务'} open={editingId!==null} onClose={cancelEdit} panelStyle={{maxWidth:'36rem'}}
+        footer={<>
+          <button className="action-btn" onClick={cancelEdit}>取消</button>
+          <button className="cta-button" style={{padding:'8px 20px',fontSize:'0.8125rem'}} onClick={saveTask} disabled={saving||!editForm.title?.trim()}>{saving?'保存中...':'保存'}</button>
+        </>}>
+        <div style={{display:'flex',flexDirection:'column',gap:'0.875rem'}}>
+          <label style={fieldLabel}>任务描述
+            <textarea className="form-input" rows={4} style={{width:'100%',resize:'vertical',lineHeight:1.6}} value={editForm.title||''} onChange={e=>setEditForm({...editForm,title:e.target.value})} placeholder="任务描述" autoFocus/>
+          </label>
+          <div style={{display:'flex',gap:'0.75rem',flexWrap:'wrap'}}>
+            <label style={{...fieldLabel,flex:1,minWidth:140}}>重点项
+              <select className="filter-select" value={editForm.node_id||''} onChange={e=>setEditForm({...editForm,node_id:e.target.value})}>
+                <option value="">—</option>{focusItems.map(f=><option key={f.id} value={f.id}>{f.title}</option>)}</select>
+            </label>
+            <label style={fieldLabel}>计划时间
+              <input className="form-input" type="time" value={editForm.planned_start_time||''} onChange={e=>setEditForm({...editForm,planned_start_time:e.target.value})}/>
+            </label>
+            <label style={fieldLabel}>时长（分钟）
+              <input className="form-input" type="number" style={{width:100}} value={editForm.planned_duration||''} onChange={e=>setEditForm({...editForm,planned_duration:e.target.value})} placeholder="min"/>
+            </label>
+            <label style={fieldLabel}>日期
+              <input className="form-input" type="date" value={editForm.execution_date||''} onChange={e=>setEditForm({...editForm,execution_date:e.target.value})}/>
+            </label>
+          </div>
+          <label style={fieldLabel}>备注
+            <textarea className="form-input" rows={2} style={{width:'100%',resize:'vertical',lineHeight:1.6}} value={editForm.notes||''} onChange={e=>setEditForm({...editForm,notes:e.target.value})} placeholder="备注"/>
+          </label>
+          <label style={{display:'flex',alignItems:'center',gap:'6px',fontSize:'0.8125rem',color:'var(--color-text-secondary)',cursor:'pointer'}}>
+            <input type="checkbox" checked={editForm.is_done||false} onChange={e=>setEditForm({...editForm,is_done:e.target.checked})}/> 已完成
+          </label>
+        </div>
+      </Modal>
       {!embedded && <footer className="global-footer" role="contentinfo" style={{marginTop:'4rem'}}><div className="footer-accent-line"></div><div className="footer-inner"><div className="footer-copyright">&copy; 2026 MY VOCATION. ALL SYSTEMS OPERATIONAL.</div></div></footer>}
     </div>
   );

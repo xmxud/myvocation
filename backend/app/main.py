@@ -2,7 +2,9 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import logging
+import os
 
 from app.config import settings
 from app.database import init_db
@@ -40,6 +42,11 @@ app.include_router(nodes_router)
 app.include_router(phases_router)
 app.include_router(executions_router)
 app.include_router(learning_router)
+
+# Mount uploads directory
+uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 
 # Exception handlers

@@ -99,7 +99,7 @@ myvocation2026/
 
 | 表名 | 用途 | 关键字段 |
 |------|------|---------|
-| `planning_nodes` | 树形节点存储 | node_type, parent_id, progress_percent |
+| `planning_nodes` | 树形节点存储 | node_type, parent_id, tag |
 | `node_descriptions` | 节点文字描述 | node_id, content |
 | `node_images` | 节点图片 | node_id, image_url |
 | `phases` | 阶段划分 | node_id, start_date, end_date |

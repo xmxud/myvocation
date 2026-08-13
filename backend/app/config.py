@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
 
+    # 阿里云 OSS（执行记录附件存储）
+    aliyun_access_key_id: str = ""
+    aliyun_access_key_secret: str = ""
+    aliyun_oss_endpoint: str = ""
+    aliyun_oss_bucket_name: str = ""
+    aliyun_oss_region: str = ""
+    # RAM 角色 ARN，预留给后续 STS 临时凭证（前端直传）使用
+    aliyun_oss_role_arn: str = ""
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

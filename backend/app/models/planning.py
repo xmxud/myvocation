@@ -1,4 +1,4 @@
-"""Planning node models (THEME, FOCUS_ITEM, TASK, SUBTASK)."""
+"""Planning node models (THEME, FOCUS_ITEM)."""
 from pydantic import BaseModel
 from typing import Optional
 
@@ -11,7 +11,6 @@ class NodeCreate(BaseModel):
     parent_id: Optional[int] = None
     user_id: Optional[int] = None
     priority: Optional[str] = None
-    task_type: Optional[str] = None
     tag: Optional[str] = None
     extra_data: Optional[str] = None
 
@@ -21,9 +20,7 @@ class NodeUpdate(BaseModel):
     codename: Optional[str] = None
     description: Optional[str] = None
     is_completed: Optional[bool] = None
-    progress_percent: Optional[int] = None
     user_id: Optional[int] = None
     priority: Optional[str] = None
-    task_type: Optional[str] = None
     tag: Optional[str] = None
     extra_data: Optional[str] = None

@@ -23,6 +23,24 @@ async def list_themes(page: int = 1, size: int = 20):
             "SELECT * FROM planning_nodes WHERE node_type = 'THEME' ORDER BY sort_order LIMIT ? OFFSET ?",
             (size, offset),
         )
+        # progress_percent 不再落库，按主题子树内执行记录的完成率现算
+        for row in rows:
+            stats = await query(
+                db,
+                """WITH RECURSIVE subtree AS (
+                       SELECT id FROM planning_nodes WHERE id = ?
+                       UNION ALL
+                       SELECT n.id FROM planning_nodes n
+                       JOIN subtree s ON n.parent_id = s.id
+                     )
+                     SELECT COUNT(*) AS total,
+                            COALESCE(SUM(CASE WHEN is_done = 1 THEN 1 ELSE 0 END), 0) AS done
+                     FROM daily_executions
+                     WHERE node_id IN (SELECT id FROM subtree)""",
+                (row["id"],),
+            )
+            total, done = stats[0]["total"], stats[0]["done"]
+            row["progress_percent"] = round(done * 100 / total) if total else 0
         total = await query(db, "SELECT COUNT(*) as c FROM planning_nodes WHERE node_type='THEME'")
         return success({"themes": rows, "total": total[0]["c"], "page": page, "size": size})
     finally:

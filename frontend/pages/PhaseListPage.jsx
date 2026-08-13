@@ -386,14 +386,14 @@ export default function PhaseListPage({ onNavigate, embedded }) {
               {/* Add form */}
               {editingPlan && (
                 <div style={{ background: 'var(--color-primary-light)', border: '1px solid var(--color-border-primary)', padding: '0.75rem', marginBottom: '1rem' }}>
-                  <input className="form-input" value={planForm.content}
+                  <textarea className="form-textarea" value={planForm.content}
                     onChange={e => setPlanForm({ ...planForm, content: e.target.value })}
                     placeholder={
                       planTab === 'goal' ? '目标内容' :
                       planTab === 'checkpoint' ? '检查项内容' :
                       '行动指南内容'
                     }
-                    autoFocus style={{ marginBottom: '0.5rem' }} />
+                    autoFocus style={{ marginBottom: '0.5rem', minHeight: 80, fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }} rows={4} />
                   <select className="filter-select" style={{ width: '100%', padding: '10px 14px', marginBottom: '0.5rem' }}
                     value={planForm.node_id}
                     onChange={e => setPlanForm({ ...planForm, node_id: e.target.value })}>
@@ -453,7 +453,7 @@ export default function PhaseListPage({ onNavigate, embedded }) {
                   const linked = item.node_id ? focusItems.find(f => f.id === item.node_id) : null;
                   return (
                   <div key={item.id} className="drawer-item-row">
-                    <span className="drawer-item-title">{item.content}</span>
+                    <span className="drawer-item-title" style={{ whiteSpace: 'pre-wrap', overflow: 'visible', padding: '0.25rem 0' }}>{item.content}</span>
                     {linked && <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--color-text-accent)', flexShrink: 0, marginRight: '0.5rem' }}>
                       @{linked.title}
                     </span>}

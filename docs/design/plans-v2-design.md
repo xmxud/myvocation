@@ -65,9 +65,8 @@ CREATE TABLE IF NOT EXISTS users (
 |-----------|------|------------|------|
 | THEME | 规划主题（如"2026暑期计划"） | 无 parent | 顶层，属于用户 |
 | FOCUS_ITEM | 重点目标（如"数学提升"） | parent=THEME | 同一主题下的多个重点 |
-| TASK | 具体任务（如"每日一练"） | parent=FOCUS_ITEM | — |
-| SUBTASK | 子任务/检查点 | parent=TASK | 更细粒度的可执行单元 |
 
+> **2026-08 实际落地修正**：TASK/SUBTASK 层级未启用（计划任务由 `daily_executions` 承载），`node_type` CHECK 已收紧为 `THEME/FOCUS_ITEM`；`task_type`/`start_date`/`end_date`/`progress_percent` 四个闲置字段已删除，`is_completed` 仅表示主题/科目归档，`priority` 仅用于 FOCUS_ITEM 科目优先级，主题完成进度由 `GET /api/themes` 现算返回。
 > **移除 `POINT` 类型**，其功能由「阶段检查项」(`phase_check_items`) 替代。
 
 #### 2.2.3 phases 改造（支持子阶段嵌套）
@@ -189,6 +188,10 @@ CREATE INDEX IF NOT EXISTS idx_ts_active ON task_schedules(is_active);
 + ALTER TABLE daily_executions ADD COLUMN planned_start_time TEXT;
 + ALTER TABLE daily_executions ADD COLUMN planned_duration INTEGER;
 + ALTER TABLE daily_executions ADD COLUMN source_point_id INTEGER REFERENCES phase_points(id);
+-- 2026-08 打卡/附件支持：
++ ALTER TABLE daily_executions ADD COLUMN actual_start_time TEXT;  -- 实际开始 HH:MM
++ ALTER TABLE daily_executions ADD COLUMN actual_end_time TEXT;    -- 实际结束 HH:MM
++ ALTER TABLE daily_executions ADD COLUMN attachments TEXT;        -- 附件 JSON [{key,url,name}]，存阿里云 OSS execution-docs/
 ```
 
 **字段说明**：
@@ -208,9 +211,9 @@ CREATE INDEX IF NOT EXISTS idx_ts_active ON task_schedules(is_active);
 **完整表结构**：
 - 任务定义：`title`(任务描述) + `planned_start_time`(计划开始时间) + `planned_duration`(计划时长)
 - 关联：`node_id`(FOCUS_ITEM) + `phase_id`(阶段) + `source_point_id`(行动指南)
-- 执行追踪：`execution_date` + `is_done` + `completion_percent` + `duration_minutes`(实际耗时)
+- 执行追踪：`execution_date` + `is_done` + `completion_percent` + `actual_start_time`/`actual_end_time`(实际起止) + `duration_minutes`(实际耗时)
 - 评分：`result_score`(0-5)
-- 记录：`notes` + `images` + `mood`
+- 记录：`notes` + `attachments`(OSS 附件) + `mood`
 
 #### 2.2.7 learning_records（学习记录：题目+知识点+反思 三位一体）— 新增
 
@@ -231,6 +234,7 @@ CREATE TABLE IF NOT EXISTS learning_records (
   user_id     INTEGER NOT NULL,
   subject_id  INTEGER NOT NULL,              -- FK→planning_nodes(FOCUS_ITEM)，科目维度
   phase_id    INTEGER,                       -- FK→phases_v2，可选关联阶段
+  execution_id INTEGER,                      -- FK→daily_executions，打卡带入的记录关联任务（2026-08 新增，SET NULL）
   record_date TEXT NOT NULL,                 -- 学习日期 "2026-07-12"
 
   -- 主维度标签（多选，逗号分隔）
@@ -253,9 +257,11 @@ CREATE TABLE IF NOT EXISTS learning_records (
   -- ② 知识点
   knowledge_point TEXT,                      -- 知识点名称，如"二次函数顶点公式"
   knowledge_note  TEXT,                      -- 笔记/详解
+  knowledge_images TEXT,                     -- 知识点配图 JSON ["url1"]（2026-08 新增）
 
   -- ③ 反思
   reflection_text TEXT,                      -- 反思内容
+  reflection_images TEXT,                    -- 反思配图 JSON ["url1"]（2026-08 新增）
 
   -- 学习追踪
   mastery_level    INTEGER DEFAULT 0 CHECK(mastery_level BETWEEN 0 AND 5),
@@ -344,7 +350,7 @@ FROM learning_records GROUP BY subject_id;
 ## 三、数据关系图（ER）
 
 ```
-users ──1:N── planning_nodes (THEME → FOCUS_ITEM → TASK → SUBTASK)
+users ──1:N── planning_nodes (THEME → FOCUS_ITEM)
   │                │                    ↑
   │                │          subject_id (FOCUS_ITEM 作为科目维度)
   │                │                    │

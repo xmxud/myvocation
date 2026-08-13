@@ -4616,9 +4616,6 @@ img {
   font-size: 0.8125rem;
   color: var(--color-text-primary);
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .drawer-item-codename {

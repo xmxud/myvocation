@@ -21,7 +21,10 @@ if [ ! -d "venv" ] && [ ! -f ".deps_installed" ]; then
     touch .deps_installed
 fi
 echo "[2/4] 启动后端 (FastAPI @ http://localhost:3001) ..."
-uvicorn app.main:app --host 0.0.0.0 --port 3001 --reload &
+# 优先使用 backend/venv 虚拟环境（本机全局 Python 可能版本过低或未装依赖）
+UVICORN="uvicorn"
+[ -x "venv/bin/uvicorn" ] && UVICORN="venv/bin/uvicorn"
+"$UVICORN" app.main:app --host 0.0.0.0 --port 3001 --reload &
 BACKEND_PID=$!
 popd > /dev/null
 

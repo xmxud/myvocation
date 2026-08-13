@@ -1,8 +1,9 @@
 """Learning records routes."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from app.database import get_db, query, query_one, execute
 from app.models import success, error
 from app.core.auth import get_optional_user
+from app.services.oss import oss_storage
 
 router = APIRouter(prefix="/api/learning-records", tags=["学习记录"])
 
@@ -10,7 +11,8 @@ router = APIRouter(prefix="/api/learning-records", tags=["学习记录"])
 @router.get("")
 async def list_records(
     subject_id: int = None, phase_id: int = None,
-    tags: str = None, date: str = None,
+    tags: str = None, date: str = None, execution_id: int = None,
+    mastery_level: int = None, knowledge_point: str = None,
     page: int = 1, size: int = 50,
 ):
     db = await get_db()
@@ -29,6 +31,15 @@ async def list_records(
         if date:
             where.append("record_date = ?")
             params.append(date)
+        if execution_id:
+            where.append("execution_id = ?")
+            params.append(execution_id)
+        if mastery_level is not None:
+            where.append("mastery_level = ?")
+            params.append(mastery_level)
+        if knowledge_point:
+            where.append("knowledge_point LIKE ?")
+            params.append(f"%{knowledge_point}%")
 
         offset = (page - 1) * size
         rows = await query(
@@ -53,6 +64,22 @@ async def get_record(record_id: int):
         await db.close()
 
 
+@router.post("/upload-attachment")
+async def upload_attachment(file: UploadFile = File(...), user=Depends(get_optional_user)):
+    """上传错题/反思附件到阿里云 OSS，返回 {key, url, name}。"""
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "附件内容为空")
+    if len(data) > 20 * 1024 * 1024:
+        raise HTTPException(400, "附件大小不能超过 20MB")
+    try:
+        info = oss_storage.upload_attachment(data, file.filename or "attachment",
+                                             prefix="learning-docs")
+    except OSSError as e:
+        raise HTTPException(502, str(e))
+    return success({**info, "name": file.filename}, "附件上传成功")
+
+
 @router.post("")
 async def create_record(body: dict, user=Depends(get_optional_user)):
     db = await get_db()
@@ -62,12 +89,15 @@ async def create_record(body: dict, user=Depends(get_optional_user)):
             db,
             """INSERT INTO learning_records (user_id, subject_id, phase_id, record_date, record_tags,
                question_text, question_images, wrong_answer, correct_answer,
-               knowledge_point, knowledge_note, reflection_text, mastery_level)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               knowledge_point, knowledge_note, knowledge_images,
+               reflection_text, reflection_images, mastery_level, execution_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (uid, body["subject_id"], body.get("phase_id"), body.get("record_date", ""),
              body.get("record_tags", "mistake"), body.get("question_text"), body.get("question_images"),
              body.get("wrong_answer"), body.get("correct_answer"), body.get("knowledge_point"),
-             body.get("knowledge_note"), body.get("reflection_text"), body.get("mastery_level", 0)),
+             body.get("knowledge_note"), body.get("knowledge_images"),
+             body.get("reflection_text"), body.get("reflection_images"),
+             body.get("mastery_level", 0), body.get("execution_id")),
         )
         return success(await query_one(db, "SELECT * FROM learning_records WHERE id = ?", (last_id,)), "记录创建成功")
     finally:
@@ -80,8 +110,10 @@ async def update_record(record_id: int, body: dict):
     try:
         fields = []
         values = []
-        for key in ["record_tags", "question_text", "question_images", "wrong_answer", "correct_answer",
-                    "knowledge_point", "knowledge_note", "reflection_text", "mastery_level", "status"]:
+        for key in ["subject_id", "phase_id", "record_date",
+                    "record_tags", "question_text", "question_images", "wrong_answer", "correct_answer",
+                    "knowledge_point", "knowledge_note", "knowledge_images",
+                    "reflection_text", "reflection_images", "mastery_level", "status"]:
             if key in body and body[key] is not None:
                 fields.append(f"{key} = ?")
                 values.append(body[key])

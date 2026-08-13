@@ -12,7 +12,7 @@ SQLite 数据库，WAL 模式，通过 `migrate-v2.sql` 在原有 V1 数据库�
 ## ER 关系图
 
 ```
-users ──1:N── planning_nodes (THEME → FOCUS_ITEM → TASK → SUBTASK)
+users ──1:N── planning_nodes (THEME → FOCUS_ITEM)
   │                │                    ↑
   │                │          subject_id (FOCUS_ITEM 作为科目维度)
   │                │                    │
@@ -48,16 +48,14 @@ CREATE TABLE users (
 
 ### 2. planning_nodes（节点树）— 改造
 
-节点类型：`THEME` → `FOCUS_ITEM` → `TASK` → `SUBTASK`
+节点类型：`THEME` → `FOCUS_ITEM`（2026-08 收敛：原设计的 TASK/SUBTASK 层级未启用，计划任务由 `daily_executions` 承载；`task_type`/`start_date`/`end_date`/`progress_percent` 四个闲置字段已删除）
 
-V2 新增字段：
-- `user_id` — 所属用户
-- `is_archived` — 是否归档
-
-```sql
-ALTER TABLE planning_nodes ADD COLUMN user_id INTEGER REFERENCES users(id);
-ALTER TABLE planning_nodes ADD COLUMN is_archived BOOLEAN DEFAULT 0;
-```
+当前字段：
+- 基本信息：`node_type`(THEME/FOCUS_ITEM)、`title`、`codename`、`description`
+- 层级：`parent_id`、`sort_order`
+- 状态：`is_completed`（仅表示主题/科目已归档完成，不做树形汇总）、`priority`（仅 FOCUS_ITEM 科目优先级）、`is_archived`
+- 展示元数据：`tag`（软关联/分类键）、`extra_data`（JSON，存 icon 等）
+- 主题完成进度**不落库**，由 `GET /api/themes` 按子树内 `daily_executions` 完成率现算返回 `progress_percent`
 
 FOCUS_ITEM 同时也是**科目维度**（`learning_records.subject_id` 指向它）。
 
@@ -141,6 +139,10 @@ V2 新增字段：
 - `source` — 来源（manual/auto/excel）
 - `result_score` — 执行结果评分（0-5）
 
+2026-08 新增字段（打卡/附件）：
+- `actual_start_time` / `actual_end_time` — 实际开始/结束时间（HH:MM）
+- `attachments` — 执行附件 JSON：`[{"key":"execution-docs/...","url":"https://...","name":"原始文件名"}]`，文件存阿里云 OSS `execution-docs/` 目录（`POST /api/daily-executions/upload-attachment` 上传）
+
 ### 7. learning_records（学习记录三位一体）— 新增
 
 ```sql
@@ -151,6 +153,7 @@ CREATE TABLE learning_records (
   subject_id  INTEGER NOT NULL,            -- FK→planning_nodes(FOCUS_ITEM)
   phase_id    INTEGER,
   record_date TEXT NOT NULL,
+  execution_id INTEGER,                    -- FK→daily_executions，从任务打卡带入的学习记录关联任务（2026-08 新增，ON DELETE SET NULL）
 
   record_tags  TEXT NOT NULL DEFAULT 'mistake',  -- "mistake,knowledge,reflection"
 
@@ -163,9 +166,11 @@ CREATE TABLE learning_records (
   -- ② 知识点
   knowledge_point TEXT,
   knowledge_note  TEXT,
+  knowledge_images TEXT,                     -- 知识点配图 JSON（2026-08 新增）
 
   -- ③ 反思
   reflection_text TEXT,
+  reflection_images TEXT,                    -- 反思配图 JSON（2026-08 新增）
 
   -- 追踪
   mastery_level    INTEGER DEFAULT 0 CHECK(mastery_level BETWEEN 0 AND 5),
