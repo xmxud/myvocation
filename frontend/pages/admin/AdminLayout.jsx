@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import ThemeListPage from '../ThemeListPage.jsx';
 import PhaseListPage from '../PhaseListPage.jsx';
 import PlanManagementPage from '../PlanManagementPage.jsx';
+import TagListPage from '../TagListPage.jsx';
 import TaskExecutionPage from '../TaskExecutionPage.jsx';
 import MistakesPage from '../MistakesPage.jsx';
 
@@ -35,6 +36,7 @@ const MENU_CONFIG = [
       { id: 'theme-list', label: '主题列表' },
       { id: 'phase-planning', label: '阶段规划' },
       { id: 'plan-management', label: '计划管理' },
+      { id: 'tag-management', label: '标签管理' },
     ],
   },
   {
@@ -361,6 +363,8 @@ export default function AdminLayout({ onBack, onNavigate, onLogout }) {
             <PhaseListPage embedded onNavigate={onNavigate} />
           ) : activePage === 'plan-management' ? (
             <PlanManagementPage embedded onNavigate={onNavigate} />
+          ) : activePage === 'tag-management' ? (
+            <TagListPage embedded onNavigate={onNavigate} />
           ) : activePage === 'task-execution' ? (
             <TaskExecutionPage embedded onNavigate={onNavigate} mode="today" />
           ) : activePage === 'error-analysis' ? (

@@ -15,6 +15,7 @@ from app.routers.nodes import router as nodes_router
 from app.routers.phases import router as phases_router
 from app.routers.executions import router as executions_router
 from app.routers.learning import router as learning_router
+from app.routers.tags import router as tags_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ app.include_router(nodes_router)
 app.include_router(phases_router)
 app.include_router(executions_router)
 app.include_router(learning_router)
+app.include_router(tags_router)
 
 # Mount uploads directory
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")

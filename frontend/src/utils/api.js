@@ -169,3 +169,42 @@ export const learningRecordsApi = {
     return payload.data;
   },
 };
+
+// ── 标签 API（统一标签库：标签类型 + 标签，全局通用）──
+export const tagsApi = {
+  // 标签类型
+  listTypes: () => request('/tags/types'),
+  createType: (name) => request('/tags/types', { method: 'POST', body: JSON.stringify({ name }) }),
+  deleteType: (id) => request(`/tags/types/${id}`, { method: 'DELETE' }),
+  // 标签（typeName 按标签类型文字过滤，page/size 分页）
+  list: (typeName, page = 1, size = 20) => {
+    const qs = new URLSearchParams();
+    if (typeName) qs.set('type_name', typeName);
+    qs.set('page', page);
+    qs.set('size', size);
+    return request(`/tags?${qs.toString()}`);
+  },
+  create: (data) => request('/tags', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id, data) => request(`/tags/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => request(`/tags/${id}`, { method: 'DELETE' }),
+  // 下载标签导入模版
+  templateUrl: `${API_BASE_URL}/tags/template/download`,
+  // 导出标签（按当前标签类型过滤）下载地址
+  exportUrl: (typeName) => `${API_BASE_URL}/tags/export${typeName ? `?type_name=${encodeURIComponent(typeName)}` : ''}`,
+  // 从 Excel 导入标签（multipart，不能走 request() 的 JSON 通道）
+  importExcel: async (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const token = getToken();
+    const res = await fetch(`${API_BASE_URL}/tags/import-excel`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload || payload.code !== 0) {
+      throw new Error(payload?.message || `请求失败 (${res.status})`);
+    }
+    return payload;
+  },
+};

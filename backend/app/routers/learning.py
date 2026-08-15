@@ -1,4 +1,6 @@
 """Learning records routes."""
+import json
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from app.database import get_db, query, query_one, execute
 from app.models import success, error
@@ -6,6 +8,53 @@ from app.core.auth import get_optional_user
 from app.services.oss import oss_storage
 
 router = APIRouter(prefix="/api/learning-records", tags=["学习记录"])
+
+
+def _json_field(v):
+    """list/dict 序列化为 JSON 字符串存储，其余类型原样返回。"""
+    if isinstance(v, (list, dict)):
+        return json.dumps(v, ensure_ascii=False)
+    return v
+
+# 记录上手动输入的新标签默认归入的类型
+USER_TAG_TYPE = "错题标签"       # 知识点标签
+ABILITY_TAG_TYPE = "题型能力标签"  # 题型能力标签
+
+
+async def _ensure_user_tags(db, tag_names, focus_id=None, type_name=USER_TAG_TYPE) -> None:
+    """把记录上携带的用户标签写入统一标签库（tags 表）。
+
+    已存在的同名标签（任意类型下）不重复创建；新标签归属 type_name 指定的类型，
+    类型不存在时自动创建。focus_id 为记录所属重点，新标签自动关联该重点，
+    便于错题弹窗按重点过滤标签时复选。
+    """
+    names = []
+    for n in tag_names or []:
+        s = str(n).strip()
+        if s and s not in names:
+            names.append(s)
+    if not names:
+        return
+    new_names = []
+    for name in names:
+        existing = await query_one(db, "SELECT id FROM tags WHERE kind='tag' AND name = ?", (name,))
+        if not existing:
+            new_names.append(name)
+    if not new_names:
+        return
+    type_row = await query_one(db, "SELECT id FROM tags WHERE kind='type' AND name = ?", (type_name,))
+    if not type_row:
+        await execute(
+            db,
+            "INSERT INTO tags (name, kind, sort_order) VALUES (?, 'type', (SELECT COALESCE(MAX(sort_order),0)+1 FROM tags WHERE kind='type'))",
+            (type_name,),
+        )
+    for name in new_names:
+        await execute(
+            db,
+            "INSERT INTO tags (name, kind, type_name, focus_id) VALUES (?, 'tag', ?, ?)",
+            (name, type_name, focus_id),
+        )
 
 
 @router.get("")
@@ -26,8 +75,12 @@ async def list_records(
             where.append("phase_id = ?")
             params.append(phase_id)
         if tags:
-            where.append("record_tags LIKE ?")
-            params.append(f"%{tags}%")
+            # 支持逗号分隔多个标签，取交集（每个都要匹配）
+            for part in str(tags).split(","):
+                part = part.strip()
+                if part:
+                    where.append("record_tags LIKE ?")
+                    params.append(f"%{part}%")
         if date:
             where.append("record_date = ?")
             params.append(date)
@@ -38,7 +91,9 @@ async def list_records(
             where.append("mastery_level = ?")
             params.append(mastery_level)
         if knowledge_point:
-            where.append("knowledge_point LIKE ?")
+            # 标签关键字同时匹配知识点和用户标签（record_tags 逗号分隔文本）
+            where.append("(knowledge_point LIKE ? OR record_tags LIKE ?)")
+            params.append(f"%{knowledge_point}%")
             params.append(f"%{knowledge_point}%")
 
         offset = (page - 1) * size
@@ -90,15 +145,18 @@ async def create_record(body: dict, user=Depends(get_optional_user)):
             """INSERT INTO learning_records (user_id, subject_id, phase_id, record_date, record_tags,
                question_text, question_images, wrong_answer, correct_answer,
                knowledge_point, knowledge_note, knowledge_images,
-               reflection_text, reflection_images, mastery_level, execution_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               reflection_text, reflection_images, mastery_level, execution_id, attachments)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (uid, body["subject_id"], body.get("phase_id"), body.get("record_date", ""),
              body.get("record_tags", "mistake"), body.get("question_text"), body.get("question_images"),
              body.get("wrong_answer"), body.get("correct_answer"), body.get("knowledge_point"),
              body.get("knowledge_note"), body.get("knowledge_images"),
              body.get("reflection_text"), body.get("reflection_images"),
-             body.get("mastery_level", 0), body.get("execution_id")),
+             body.get("mastery_level", 0), body.get("execution_id"),
+             _json_field(body.get("attachments"))),
         )
+        await _ensure_user_tags(db, body.get("tag_names"), body.get("subject_id"))
+        await _ensure_user_tags(db, body.get("ability_tag_names"), body.get("subject_id"), ABILITY_TAG_TYPE)
         return success(await query_one(db, "SELECT * FROM learning_records WHERE id = ?", (last_id,)), "记录创建成功")
     finally:
         await db.close()
@@ -113,10 +171,10 @@ async def update_record(record_id: int, body: dict):
         for key in ["subject_id", "phase_id", "record_date",
                     "record_tags", "question_text", "question_images", "wrong_answer", "correct_answer",
                     "knowledge_point", "knowledge_note", "knowledge_images",
-                    "reflection_text", "reflection_images", "mastery_level", "status"]:
+                    "reflection_text", "reflection_images", "mastery_level", "status", "attachments"]:
             if key in body and body[key] is not None:
                 fields.append(f"{key} = ?")
-                values.append(body[key])
+                values.append(_json_field(body[key]))
         if "review_count" in body:
             fields.append("review_count = ?")
             values.append(body["review_count"])
@@ -127,6 +185,8 @@ async def update_record(record_id: int, body: dict):
             fields.append("updated_at = CURRENT_TIMESTAMP")
             values.append(record_id)
             await execute(db, f"UPDATE learning_records SET {', '.join(fields)} WHERE id = ?", tuple(values))
+        await _ensure_user_tags(db, body.get("tag_names"), body.get("subject_id"))
+        await _ensure_user_tags(db, body.get("ability_tag_names"), body.get("subject_id"), ABILITY_TAG_TYPE)
         return success(await query_one(db, "SELECT * FROM learning_records WHERE id = ?", (record_id,)), "更新成功")
     finally:
         await db.close()

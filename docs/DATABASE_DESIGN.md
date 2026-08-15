@@ -172,6 +172,12 @@ CREATE TABLE learning_records (
   reflection_text TEXT,
   reflection_images TEXT,                    -- 反思配图 JSON（2026-08 新增）
 
+  -- ④ 多类型图片附件（2026-08 新增）
+  -- JSON 数组，元素：{id, type, note, url, key, name, uploaded_at}
+  -- type ∈ 原题/空白题目/解答过程/知识点整理/反思备注
+  -- 上面三个旧图片列仍按类型同步写入（原题→question_images 等），供旧页面兼容读取
+  attachments    TEXT,
+
   -- 追踪
   mastery_level    INTEGER DEFAULT 0 CHECK(mastery_level BETWEEN 0 AND 5),
   review_count     INTEGER DEFAULT 0,

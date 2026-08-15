@@ -4339,6 +4339,12 @@ img {
   transition: all 150ms;
   text-transform: uppercase;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1;
+  text-decoration: none;
 }
 
 .action-btn:hover {
