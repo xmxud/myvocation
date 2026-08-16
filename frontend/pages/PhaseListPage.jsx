@@ -415,7 +415,7 @@ export default function PhaseListPage({ onNavigate, embedded }) {
                 style={{ padding: '6px 16px', fontSize: '0.75rem', marginBottom: '1rem' }}>
                 + 添加{planTab === 'goal' ? '目标' : planTab === 'checkpoint' ? '检查点' : '指南'}
               </button>
-              <a href="http://localhost:3001/api/phases/template/download" className="action-btn"
+              <a href="/api/phases/template/download" className="action-btn"
                 style={{ textDecoration: 'none', marginLeft: '0.5rem' }}>
                 📥 下载模板
               </a>
@@ -429,7 +429,7 @@ export default function PhaseListPage({ onNavigate, embedded }) {
                     fd.append('file', file);
                     try {
                       const token = localStorage.getItem('token');
-                      const res = await fetch(`http://localhost:3001/api/phases/${planPhase.id}/import-excel`, {
+                      const res = await fetch(`/api/phases/${planPhase.id}/import-excel`, {
                         method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
                       });
                       const data = await res.json();

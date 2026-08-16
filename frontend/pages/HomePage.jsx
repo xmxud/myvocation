@@ -216,7 +216,7 @@ export default function HomePage({ onNavigate, onLogout }) {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/health')
+    fetch('/api/health')
       .then((res) => res.json())
       .then((data) => setBackendStatus(data.message || '系统在线'))
       .catch(() => setBackendStatus('离线模式'));

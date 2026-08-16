@@ -717,37 +717,3 @@ async def export_daily_plan(node_id: int, date: str = None):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"},
     )
-
-
-# ── File Upload ──
-
-@router.post("/daily-executions/{exec_id}/upload")
-async def upload_execution_file(exec_id: int, file: UploadFile = File(...)):
-    """上传执行记录附件到 execution-docs/ 目录"""
-    try:
-        upload_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads", "execution-docs")
-        os.makedirs(upload_dir, exist_ok=True)
-
-        # Generate unique filename: exec_{id}_{timestamp}_{original}
-        ts = datetime.now().strftime("%Y%m%d%H%M%S")
-        safe_name = re.sub(r'[^\w.\-]', '_', file.filename or "file")
-        filename = f"exec_{exec_id}_{ts}_{safe_name}"
-        filepath = os.path.join(upload_dir, filename)
-
-        content = await file.read()
-        with open(filepath, "wb") as f:
-            f.write(content)
-
-        # Store URL in database
-        db = await get_db()
-        try:
-            row = await query_one(db, "SELECT images FROM daily_executions WHERE id = ?", (exec_id,))
-            existing = row["images"] or "" if row else ""
-            new_images = (existing + "," + filename) if existing else filename
-            await execute(db, "UPDATE daily_executions SET images = ? WHERE id = ?", (new_images, exec_id))
-        finally:
-            await db.close()
-
-        return success({"filename": filename, "url": f"/uploads/execution-docs/{filename}"}, "上传成功")
-    except Exception as e:
-        return error(str(e), 500)

@@ -1,0 +1,35 @@
+server {
+    listen 80;
+    server_name your-domain.com;   # 改成你的域名或公网 IP
+
+    client_max_body_size 20m;      # 上传 Excel/附件用，按需调整
+
+    # 前端静态资源（先执行 cd frontend && npm run build）
+    root /home/xiaoman/codedir/myvocation/frontend/dist;   # 改成服务器上的实际路径
+    index index.html;
+
+    # 构建产物带 hash，长缓存；index.html 不缓存
+    location /assets/ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    # SPA 回退
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 后端 API
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;    # AI 生成任务（ai-generate）耗时长，默认 60s 会超时
+    }
+}
