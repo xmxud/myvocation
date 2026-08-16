@@ -73,6 +73,7 @@ const emptyForm = () => ({
   record_date: todayStr(),
   question_text: '',
   attachments: [],
+  knowledge_note: '',
   reflection_text: '',
   mastery_level: '0',
   record_tags: 'mistake',
@@ -118,6 +119,8 @@ export default function MistakesPage({ onBack, embedded }) {
   const [abilityTagInput, setAbilityTagInput] = useState('');
   // 当前展开下拉列表的标签分组（knowledge_tags / ability_tags / null）
   const [openTagMenu, setOpenTagMenu] = useState(null);
+  // 弹窗「更多」折叠区：相关知识点梳理 / 反思说明 / 打标签
+  const [showMore, setShowMore] = useState(false);
 
   const loadTagOptions = useCallback(async () => {
     try {
@@ -205,6 +208,7 @@ export default function MistakesPage({ onBack, embedded }) {
     setForm(emptyForm());
     setTagInput('');
     setAbilityTagInput('');
+    setShowMore(false);
     // 默认沿用当前筛选的主题/科目，减少重复选择
     setModalThemeId(themeFilter || '');
     setForm(f => ({ ...f, subject_id: subjectFilter || '', phase_id: phaseFilter || '' }));
@@ -227,6 +231,7 @@ export default function MistakesPage({ onBack, embedded }) {
         const a = parseAttachments(record.attachments);
         return a.length ? a : legacyToAttachments(record);
       })(),
+      knowledge_note: record.knowledge_note || '',
       reflection_text: record.reflection_text || '',
       mastery_level: record.mastery_level !== null && record.mastery_level !== undefined ? String(record.mastery_level) : '0',
       record_tags: record.record_tags || 'mistake',
@@ -236,6 +241,8 @@ export default function MistakesPage({ onBack, embedded }) {
     setTagInput('');
     setAbilityTagInput('');
     setFormError('');
+    // 已有梳理/反思/标签内容时自动展开「更多」区，避免用户看不到已有数据
+    setShowMore(Boolean(record.knowledge_note || record.reflection_text || allTags.length));
     setModalOpen(true);
     // 反查科目所属主题以便预选；失败则不预选主题，重点下拉单独补一个当前科目选项
     setModalThemeId('');
@@ -368,13 +375,20 @@ export default function MistakesPage({ onBack, embedded }) {
       if (!kinds.includes('mistake')) kinds.unshift('mistake');
       // 旧的三个图片列按类型同步（'[]' 表示清空），兼容任务执行页等读旧列的页面
       const byType = (t) => form.attachments.filter(a => a.type === t).map(a => ({ key: a.key, url: a.url, name: a.name }));
+      // 新建时未填错题说明：自动生成「系统日期+随机数+重点科目+错题」
+      let questionText = form.question_text.trim();
+      if (!questionText && !editingRecord) {
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        questionText = `${todayStr().replace(/-/g, '')}-${rand} ${subjectTitle || '未选科目'}错题`;
+      }
       const payload = {
         subject_id: Number(form.subject_id),
         phase_id: form.phase_id ? Number(form.phase_id) : null,
         record_date: form.record_date || null,
-        question_text: form.question_text.trim() || null,
+        question_text: questionText || null,
         attachments: JSON.stringify(form.attachments),
         question_images: JSON.stringify(byType('原题')),
+        knowledge_note: form.knowledge_note.trim() || null,
         knowledge_images: JSON.stringify(byType('知识点整理')),
         reflection_text: form.reflection_text.trim() || null,
         reflection_images: JSON.stringify(byType('反思备注')),
@@ -602,9 +616,11 @@ export default function MistakesPage({ onBack, embedded }) {
                 return (
                   <div key={record.id} className="drawer-item-row" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: 4, whiteSpace: 'pre-wrap' }}>
-                        {(record.question_text || '').slice(0, 120) || '（无错题说明）'}
-                        {(record.question_text || '').length > 120 && '…'}
+                      <div style={{
+                        fontWeight: 600, fontSize: '0.875rem', marginBottom: 4,
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }} title={record.question_text || ''}>
+                        {record.question_text || '（无错题说明）'}
                       </div>
                       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--color-text-tertiary)' }}>
                         <span>{record.record_date}</span>
@@ -738,14 +754,28 @@ export default function MistakesPage({ onBack, embedded }) {
                       onChange={handleImageUpload} />
                   </label>
                 </div>
-                <label>
-                  <span className="form-label">反思说明</span>
-                  <textarea className="form-textarea" value={form.reflection_text}
-                    onChange={e => setForm({ ...form, reflection_text: e.target.value })}
-                    placeholder="错误反思、改进思路（可选）" rows={2} />
-                </label>
-                {renderTagEditor('knowledge_tags', '知识点标签（可多选，按重点联动过滤）', availableKnowledgeOptions, tagInput, setTagInput)}
-                {renderTagEditor('ability_tags', '题型能力标签（可多选）', availableAbilityOptions, abilityTagInput, setAbilityTagInput, false)}
+                <button type="button" className="action-btn" style={{ justifySelf: 'start' }}
+                  onClick={() => setShowMore(v => !v)}>
+                  {showMore ? '收起更多 ▲' : '更多（知识点梳理 / 反思 / 打标签）▼'}
+                </button>
+                {showMore && (
+                  <div style={{ display: 'grid', gap: '0.75rem', paddingTop: '0.25rem' }}>
+                    <label>
+                      <span className="form-label">相关知识点梳理（可选）</span>
+                      <textarea className="form-textarea" value={form.knowledge_note}
+                        onChange={e => setForm({ ...form, knowledge_note: e.target.value })}
+                        placeholder="本题涉及的知识点、公式、解题思路梳理（可选）" rows={3} />
+                    </label>
+                    <label>
+                      <span className="form-label">反思说明</span>
+                      <textarea className="form-textarea" value={form.reflection_text}
+                        onChange={e => setForm({ ...form, reflection_text: e.target.value })}
+                        placeholder="错误反思、改进思路（可选）" rows={2} />
+                    </label>
+                    {renderTagEditor('knowledge_tags', '知识点标签（可多选，按重点联动过滤）', availableKnowledgeOptions, tagInput, setTagInput)}
+                    {renderTagEditor('ability_tags', '题型能力标签（可多选）', availableAbilityOptions, abilityTagInput, setAbilityTagInput, false)}
+                  </div>
+                )}
                 <label>
                   <span className="form-label">掌握程度</span>
                   <select className="filter-select" style={{ width: '100%', padding: '10px 14px' }}
