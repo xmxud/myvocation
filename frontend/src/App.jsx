@@ -7,14 +7,28 @@ import PhaseListPage from '../pages/PhaseListPage.jsx';
 import PlanManagementPage from '../pages/PlanManagementPage.jsx';
 import DashboardPage from '../pages/DashboardPage.jsx';
 import PlanEditorPage from '../pages/PlanEditorPage.jsx';
+import DailyPlanEditPage from '../pages/DailyPlanEditPage.jsx';
 import DailyExecutionPage from '../pages/DailyExecutionPage.jsx';
 import StatisticsPage from '../pages/StatisticsPage.jsx';
 import AdminLayout from '../pages/admin/AdminLayout.jsx';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('home');
+  // hash 路由：支持通过 /#/dashboard 等 URL 直接访问页面
+  const VALID_PAGES = ['home', 'plans', 'themes', 'phases', 'plan-management', 'plan-editor', 'daily-plan-edit', 'dashboard', 'dailyExecution', 'statistics', 'admin'];
+  const pageFromHash = () => {
+    const h = window.location.hash.replace(/^#\/?/, '');
+    return VALID_PAGES.includes(h) ? h : 'home';
+  };
+  const [currentPage, setCurrentPage] = useState(pageFromHash);
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+
+  // 浏览器前进/后退或手动修改 hash 时同步页面
+  useEffect(() => {
+    const onHashChange = () => setCurrentPage(pageFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   // Check for existing auth on mount
   useEffect(() => {
@@ -43,6 +57,8 @@ export default function App() {
   }, []);
 
   const navigateTo = useCallback((page) => {
+    // 写 hash 触发 hashchange 同步 currentPage；home 用 / 保持地址栏干净
+    window.location.hash = page === 'home' ? '/' : `/${page}`;
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
@@ -76,6 +92,10 @@ export default function App() {
 
   if (currentPage === 'plan-editor') {
     return <PlanEditorPage onBack={() => navigateTo('dashboard')} onNavigate={navigateTo} />;
+  }
+
+  if (currentPage === 'daily-plan-edit') {
+    return <DailyPlanEditPage onNavigate={navigateTo} />;
   }
 
   if (currentPage === 'dashboard') {

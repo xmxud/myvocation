@@ -21,6 +21,35 @@ from app.services.oss import oss_storage, OSSError
 router = APIRouter(prefix="/api/daily-executions", tags=["每日执行"])
 
 
+@router.get("")
+async def list_executions_all(date: str = None, start_date: str = None, end_date: str = None):
+    """跨主题查询执行记录（主看板「今日任务」用），JOIN 节点取标题（学科）和优先级。
+    date 缺省为今天。"""
+    if not date and not start_date and not end_date:
+        date = date_cls.today().isoformat()
+    db = await get_db()
+    try:
+        sql = """SELECT de.*, n.title AS node_title, n.priority AS node_priority
+                 FROM daily_executions de
+                 LEFT JOIN planning_nodes n ON n.id = de.node_id
+                 WHERE 1=1"""
+        params = []
+        if date:
+            sql += " AND de.execution_date = ?"
+            params.append(date)
+        if start_date:
+            sql += " AND de.execution_date >= ?"
+            params.append(start_date)
+        if end_date:
+            sql += " AND de.execution_date <= ?"
+            params.append(end_date)
+        sql += " ORDER BY de.sort_order, de.planned_start_time, de.id"
+        rows = await query(db, sql, tuple(params))
+        return success(rows)
+    finally:
+        await db.close()
+
+
 @router.get("/{node_id}")
 async def list_executions(node_id: int, phase_id: int = None, date: str = None,
                           start_date: str = None, end_date: str = None,
@@ -263,8 +292,8 @@ async def create_execution(body: dict, user=Depends(get_optional_user)):
                (node_id, phase_id, user_id, execution_date, title,
                 planned_start_time, planned_duration, source, source_point_id,
                 is_done, completion_percent, notes, duration_minutes, result_score,
-                actual_start_time, actual_end_time, attachments)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                actual_start_time, actual_end_time, attachments, sort_order)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (body.get("node_id"), body.get("phase_id"), uid,
              body.get("execution_date", ""), body.get("title"),
              body.get("planned_start_time"), body.get("planned_duration"),
@@ -272,7 +301,7 @@ async def create_execution(body: dict, user=Depends(get_optional_user)):
              body.get("is_done", 0), body.get("completion_percent", 0),
              body.get("notes"), body.get("duration_minutes"), body.get("result_score", 0),
              body.get("actual_start_time"), body.get("actual_end_time"),
-             body.get("attachments")),
+             body.get("attachments"), body.get("sort_order", 0)),
         )
         row = await query_one(db, "SELECT * FROM daily_executions WHERE id = ?", (last_id,))
         return success(row, "执行记录创建成功")
@@ -289,7 +318,7 @@ async def update_execution(exec_id: int, body: dict):
         for key in ["title", "planned_start_time", "planned_duration", "is_done",
                      "completion_percent", "duration_minutes", "notes", "result_score",
                      "mood", "execution_date", "node_id", "phase_id",
-                     "actual_start_time", "actual_end_time", "attachments"]:
+                     "actual_start_time", "actual_end_time", "attachments", "sort_order"]:
             if key in body and body[key] is not None:
                 fields.append(f"{key} = ?")
                 values.append(body[key])

@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { executionsApi, phasesApi } from '../src/utils/api.js';
 
 /* ========================================
    HUD SVG ICONS
@@ -116,30 +117,60 @@ const PRIORITY_LABELS = {
 };
 
 /* ========================================
-   MOCK DATA (后续替换为 API)
+   DATA MAPPING（daily_executions → 看板任务卡）
    ======================================== */
 
-// TODO: 替换为 API — GET /api/daily-tasks?date=today
-const DEFAULT_TASKS = [
-  { id: 1, subject: '英语', priority: '紧急', title: '每日词汇小红本5页背诵 + 四会自测', estimatedMin: 45, plannedStart: '08:30', plannedEnd: '09:15', completed: false, actualMin: null, actualStart: null, actualEnd: null, score: null, requirement: null, tags: [], note: '' },
-  { id: 2, subject: '英语', priority: '常规', title: '天学网定制版口语每日演练', estimatedMin: 30, plannedStart: '10:00', plannedEnd: '10:30', completed: true, actualMin: 30, actualStart: '10:02', actualEnd: '10:28', score: 85, requirement: null, tags: ['顺利掌握'], note: '口语连读稍生疏' },
-  { id: 3, subject: '数学', priority: '基础', title: '《天利38套》模拟题第1套 — 限时完成', estimatedMin: 120, plannedStart: '13:15', plannedEnd: '15:15', completed: false, actualMin: null, actualStart: null, actualEnd: null, score: null, requirement: '需黑笔作答，红蓝笔改错', tags: [], note: '' },
-  { id: 4, subject: '语文', priority: '长效', title: '实虚词150词背诵 + 《红楼梦》21-40回精读', estimatedMin: 60, plannedStart: '10:45', plannedEnd: '11:45', completed: false, actualMin: null, actualStart: null, actualEnd: null, score: null, requirement: null, tags: [], note: '' },
-  { id: 5, subject: '物理', priority: '基础', title: '海淀期末卷 — 力学专项限时训练', estimatedMin: 90, plannedStart: '15:00', plannedEnd: '16:30', completed: false, actualMin: null, actualStart: null, actualEnd: null, score: null, requirement: '限时90分钟，独立完成', tags: [], note: '' },
-  { id: 6, subject: '体育', priority: '常规', title: '30分钟跑操/有氧慢跑 + 仰卧起坐拉伸', estimatedMin: 30, plannedStart: '17:00', plannedEnd: '17:30', completed: false, actualMin: null, actualStart: null, actualEnd: null, score: null, requirement: null, tags: [], note: '' },
-];
+// 由计划开始时间 + 预计时长推算计划结束时间（HH:MM）
+function endTimeFrom(start, durationMin) {
+  if (!start || !durationMin) return null;
+  const [h, m] = start.split(':').map(Number);
+  const total = h * 60 + m + Number(durationMin);
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
 
-// TODO: 替换为 API — GET /api/phases/by-node/:themeId?status=active
-const CURRENT_PHASE = {
-  name: '当前阶段 · 暑假冲刺习惯养成',
-  dateRange: '2026-08-01 — 2026-08-31',
-  daysLeft: 25,
-  totalDays: 30,
-  progressPercent: 62,
-  score:78,
-  focusSubject: '补充各科基础/强攻英语',
-  focusLabel: '英语薄弱专项提高',
+const nowHHMM = () => {
+  const n = new Date();
+  return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
 };
+
+function mapExecution(r) {
+  return {
+    id: r.id,
+    nodeId: r.node_id,
+    phaseId: r.phase_id,
+    subject: r.node_title || '其他',
+    priority: r.node_priority || '常规',
+    title: r.title || '',
+    estimatedMin: r.planned_duration || 0,
+    plannedStart: r.planned_start_time || null,
+    plannedEnd: endTimeFrom(r.planned_start_time, r.planned_duration),
+    completed: Boolean(r.is_done),
+    actualMin: r.duration_minutes ?? null,
+    actualStart: r.actual_start_time || null,
+    actualEnd: r.actual_end_time || null,
+    score: r.result_score || null,
+    requirement: null,
+    tags: [],
+    note: r.notes || '',
+  };
+}
+
+// 活跃阶段 → 阶段状态条
+function mapPhase(p) {
+  const start = new Date(p.start_date);
+  const end = new Date(p.end_date);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const totalDays = Math.max(1, Math.round((end - start) / 86400000) + 1);
+  const elapsed = Math.min(totalDays, Math.max(0, Math.round((today - start) / 86400000) + 1));
+  return {
+    name: `${p.theme_title ? p.theme_title + ' · ' : ''}${p.phase_number}. ${p.title}`,
+    dateRange: `${p.start_date} — ${p.end_date}`,
+    daysLeft: Math.max(0, Math.round((end - today) / 86400000)),
+    totalDays,
+    progressPercent: Math.round((elapsed / totalDays) * 100),
+    focusSubject: p.theme_title || '—',
+  };
+}
 
 /* ========================================
    SUB-COMPONENTS
@@ -181,6 +212,20 @@ function CountdownBar({ gaokaoDays, tingkouDays, englishWarning }) {
 
 /** 阶段状态条 */
 function PhaseBar({ phase, onNavigate }) {
+  if (!phase) {
+    return (
+      <div className="dash-phase-bar">
+        <div className="dash-phase-header">
+          <div className="dash-phase-title-row">
+            <CalendarIcon />
+            <span className="dash-phase-link" onClick={() => onNavigate && onNavigate('plan-editor')}>阶段规划</span>
+            <span className="dash-phase-sep">›</span>
+            <span className="dash-phase-name">当前没有进行中的阶段</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const pct = phase.progressPercent || 0;
   return (
     <div className="dash-phase-bar">
@@ -263,14 +308,26 @@ function ProgressBar({ completedMin, completedCount, totalCount, totalScore }) {
   );
 }
 
-function CurrentReminder({ tasks }) {
+function CurrentReminder({ tasks, onTimerStart, onTimerEnd }) {
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+  // 已手动关闭的提醒项（按天持久化到 localStorage，关闭后本栏目不再显示）
+  const dismissKey = `dash-reminder-dismissed-${now.toISOString().slice(0, 10)}`;
+  const [dismissed, setDismissed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(dismissKey) || '[]'); } catch { return []; }
+  });
+  const dismiss = (id) => {
+    const next = [...dismissed, id];
+    setDismissed(next);
+    localStorage.setItem(dismissKey, JSON.stringify(next));
+  };
+
   // 应该已经开始但未完成的任务
-  const overdue = tasks.filter((t) =>
+  const overdueAll = tasks.filter((t) =>
     !t.completed && t.plannedStart && t.plannedStart <= currentTime
   );
+  const overdue = overdueAll.filter((t) => !dismissed.includes(t.id));
   const inProgress = overdue.filter((t) => t.plannedEnd && currentTime <= t.plannedEnd);
 
   return (
@@ -286,7 +343,9 @@ function CurrentReminder({ tasks }) {
       ) : (
         <div className="dash-reminder-list">
           {overdue.map((task) => (
-            <CurrentTaskCard key={task.id} task={task} active={inProgress.some((t) => t.id === task.id)} />
+            <CurrentTaskCard key={task.id} task={task} active={inProgress.some((t) => t.id === task.id)}
+              onTimerStart={onTimerStart} onTimerEnd={onTimerEnd}
+              onDismiss={() => dismiss(task.id)} />
           ))}
         </div>
       )}
@@ -294,7 +353,7 @@ function CurrentReminder({ tasks }) {
   );
 }
 
-function CurrentTaskCard({ task, active }) {
+function CurrentTaskCard({ task, active, onTimerStart, onTimerEnd, onDismiss }) {
   const [running, setRunning] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [elapsed, setElapsed] = useState(0);
@@ -312,15 +371,13 @@ function CurrentTaskCard({ task, active }) {
     const now = new Date();
     setStartTime(now);
     setRunning(true);
-    // TODO: API — recordActualStart(task.id)
+    onTimerStart && onTimerStart(task);
   };
 
   const handleEnd = () => {
-    const endTime = new Date();
-    const mins = Math.floor((endTime - startTime) / 60000);
     setRunning(false);
+    onTimerEnd && onTimerEnd(task, elapsed);
     setElapsed(0);
-    // TODO: API — recordActualEnd(task.id, elapsedMin: mins)
   };
 
   return (
@@ -339,18 +396,30 @@ function CurrentTaskCard({ task, active }) {
         ) : (
           <button className="dash-reminder-btn dash-reminder-btn-start" onClick={handleStart}>开始</button>
         )}
+        <button className="dash-reminder-btn dash-reminder-btn-close" onClick={onDismiss} title="关闭后本栏目不再显示">关闭</button>
       </div>
     </div>
   );
 }
 
-function TaskCheckinPanel({ task, compact }) {
-  const [actualStart, setActualStart] = useState('');
-  const [actualEnd, setActualEnd] = useState('');
-  const [actualMin, setActualMin] = useState('');
-  const [score, setScore] = useState('');
+function TaskCheckinPanel({ task, compact, onSubmit }) {
+  const [actualStart, setActualStart] = useState(task.actualStart || '');
+  const [actualEnd, setActualEnd] = useState(task.actualEnd || '');
+  const [actualMin, setActualMin] = useState(task.actualMin || '');
+  const [score, setScore] = useState(task.score || '');
   const [gains, setGains] = useState('');
   const [improvements, setImprovements] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onSubmit(task, { actualStart, actualEnd, actualMin, score, gains, improvements });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className={`dash-checkin ${compact ? 'dash-checkin-compact' : ''}`}>
@@ -397,7 +466,9 @@ function TaskCheckinPanel({ task, compact }) {
         {task.requirement && <div className="dash-task-req"><WarningIcon /> {task.requirement}</div>}
         <button className="dash-task-act" onClick={() => { /* TODO: declareCheckin(task.id) */ }}><CheckIcon /> 确认订正</button>
         <button className="dash-task-act" onClick={() => { /* TODO: uploadPhoto(task.id) */ }}>📷 上传照片</button>
-        <button className="dash-task-act dash-task-act-submit" onClick={() => { /* TODO: submitCheckin(task.id, {actualMin,score,gains,improvements}) */ }}>确认打卡</button>
+        <button className="dash-task-act dash-task-act-submit" disabled={submitting} onClick={handleSubmit}>
+          {submitting ? '提交中...' : '确认打卡'}
+        </button>
       </div>
       <div className="dash-task-tags-row">
         <span className="dash-task-tags-hint">归因：</span>
@@ -409,7 +480,7 @@ function TaskCheckinPanel({ task, compact }) {
   );
 }
 
-function ReviewSection({ tasks, onNavigate }) {
+function ReviewSection({ tasks, onNavigate, onAddTomorrow }) {
   const [reviewFilter, setReviewFilter] = useState('all');
   const [masteryFilter, setMasteryFilter] = useState([]); // 多选
   const [mastery, setMastery] = useState({});
@@ -507,7 +578,7 @@ function ReviewSection({ tasks, onNavigate }) {
                 )}
                 {task.note && <div className="dash-review-item-note">{task.note}</div>}
                 <div className="dash-review-item-actions">
-                  <button className="dash-review-btn" onClick={() => { /* TODO: addToNextPlan(task) */ }}>＋ 加入次日计划</button>
+                  <button className="dash-review-btn" onClick={() => onAddTomorrow && onAddTomorrow(task)}>＋ 加入次日计划</button>
                   <button className="dash-review-btn" onClick={() => { /* TODO: addSimilar(task) */ }}>＋ 类似题目/体会</button>
                 </div>
               </div>
@@ -519,7 +590,7 @@ function ReviewSection({ tasks, onNavigate }) {
   );
 }
 
-function TaskTimer({ task }) {
+function TaskTimer({ task, onStart, onEnd }) {
   const [running, setRunning] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [elapsed, setElapsed] = useState(0);
@@ -530,8 +601,18 @@ function TaskTimer({ task }) {
     return () => clearInterval(t);
   }, [running, startTime]);
 
-  const handleStart = (e) => { e.stopPropagation(); setStartTime(Date.now()); setRunning(true); /* TODO: API */ };
-  const handleEnd = (e) => { e.stopPropagation(); setRunning(false); setElapsed(0); /* TODO: API */ };
+  const handleStart = (e) => {
+    e.stopPropagation();
+    setStartTime(Date.now());
+    setRunning(true);
+    onStart && onStart(task);
+  };
+  const handleEnd = (e) => {
+    e.stopPropagation();
+    setRunning(false);
+    onEnd && onEnd(task, elapsed);
+    setElapsed(0);
+  };
 
   if (running) return (
     <span className="dash-task-timer dash-task-timer-running" onClick={(e) => e.stopPropagation()}>
@@ -560,14 +641,14 @@ function TaskFilterBar({ activeFilter, onFilterChange, onNavigate }) {
             {f.label}
           </button>
         ))}
-        <span className="dash-filter-link" onClick={() => onNavigate && onNavigate('plan-editor')}>编辑计划 →</span>
+        <span className="dash-filter-link" onClick={() => onNavigate && onNavigate('daily-plan-edit')}>编辑计划 →</span>
       </div>
     </div>
   );
 }
 
 /** 单项任务卡片 */
-function TaskItem({ task }) {
+function TaskItem({ task, onCheckin, onTimerStart, onTimerEnd }) {
   const [expanded, setExpanded] = useState(false);
   const sc = SUBJECT_COLORS[task.subject] || SUBJECT_COLORS['英语'];
   const pr = PRIORITY_LABELS[task.priority] || PRIORITY_LABELS['常规'];
@@ -606,7 +687,7 @@ function TaskItem({ task }) {
 
         <div className="dash-task-action" onClick={(e) => e.stopPropagation()}>
           {!task.completed && (
-            <TaskTimer task={task} />
+            <TaskTimer task={task} onStart={onTimerStart} onEnd={onTimerEnd} />
           )}
           {!task.completed ? (
             <button className="dash-task-btn" onClick={() => setExpanded(!expanded)}>
@@ -619,7 +700,7 @@ function TaskItem({ task }) {
       </div>
 
       {/* 展开面板 */}
-      {expanded && !task.completed && <TaskCheckinPanel task={task} />}
+      {expanded && !task.completed && <TaskCheckinPanel task={task} onSubmit={onCheckin} />}
 
       {expanded && task.completed && (
         <div className="dash-task-panel dash-task-panel-done">
@@ -637,17 +718,99 @@ function TaskItem({ task }) {
 export default function DashboardPage({ onBack, onNavigate }) {
   const [gaokaoDays, setGaokaoDays] = useState(calcDaysLeft(GAOKAO_DATE));
   const [tingkouDays, setTingkouDays] = useState(calcDaysLeft(TINGKOU_DATE));
-  const [activeFilter, setActiveFilter] = useState('urgent');
+  const [activeFilter, setActiveFilter] = useState('all');
 
-  // TODO: 替换为 API 数据源
-  // const [tasks, setTasks] = useState([]);
-  // const [phase, setPhase] = useState(null);
-  // useEffect(() => {
-  //   fetch('/api/daily-tasks?date=today').then(r => r.json()).then(d => setTasks(d.data));
-  //   fetch('/api/phases/active').then(r => r.json()).then(d => setPhase(d.data));
-  // }, []);
-  const [tasks] = useState(DEFAULT_TASKS);
-  const phase = CURRENT_PHASE;
+  // 真实数据源：今日任务（跨主题）+ 当前活跃阶段
+  const [tasks, setTasks] = useState([]);
+  const [phase, setPhase] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true); setLoadError('');
+    try {
+      const [execs, actives] = await Promise.all([
+        executionsApi.getTodayExecutions(),
+        phasesApi.getActivePhases(),
+      ]);
+      setTasks((execs || []).map(mapExecution));
+      setPhase(actives && actives.length ? mapPhase(actives[0]) : null);
+    } catch (e) {
+      setLoadError(e.message || '加载失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+
+  // 本地更新某条任务
+  const patchTask = useCallback((id, patch) => {
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  }, []);
+
+  // 打卡提交：实际时间/时长/评分 + 积累与待提高合并入 notes
+  const handleCheckin = useCallback(async (task, form) => {
+    const notes = [
+      form.gains && `积累：${form.gains}`,
+      form.improvements && `待提高：${form.improvements}`,
+    ].filter(Boolean).join('\n') || null;
+    const payload = {
+      is_done: 1,
+      actual_start_time: form.actualStart || null,
+      actual_end_time: form.actualEnd || null,
+      duration_minutes: form.actualMin !== '' && form.actualMin != null ? Number(form.actualMin) : null,
+      result_score: form.score !== '' && form.score != null ? Number(form.score) : null,
+      notes,
+    };
+    try {
+      await executionsApi.updateExecution(task.id, payload);
+      patchTask(task.id, {
+        completed: true,
+        actualMin: payload.duration_minutes,
+        actualStart: payload.actual_start_time,
+        actualEnd: payload.actual_end_time,
+        score: payload.result_score,
+        note: notes || '',
+      });
+    } catch (e) {
+      alert('打卡失败: ' + (e.message || e));
+    }
+  }, [patchTask]);
+
+  // 计时器：开始写实际开始时间，结束写实际结束时间 + 时长
+  const handleTimerStart = useCallback((task) => {
+    const now = nowHHMM();
+    executionsApi.updateExecution(task.id, { actual_start_time: now })
+      .then(() => patchTask(task.id, { actualStart: now }))
+      .catch(() => {});
+  }, [patchTask]);
+
+  const handleTimerEnd = useCallback((task, elapsedMin) => {
+    const now = nowHHMM();
+    executionsApi.updateExecution(task.id, { actual_end_time: now, duration_minutes: elapsedMin })
+      .then(() => patchTask(task.id, { actualEnd: now, actualMin: elapsedMin }))
+      .catch(() => {});
+  }, [patchTask]);
+
+  // 加入次日计划：按今日任务复制一条到明天
+  const handleAddTomorrow = useCallback(async (task) => {
+    const tmr = new Date();
+    tmr.setDate(tmr.getDate() + 1);
+    try {
+      await executionsApi.createExecution({
+        node_id: task.nodeId,
+        phase_id: task.phaseId,
+        execution_date: tmr.toISOString().slice(0, 10),
+        title: task.title,
+        planned_start_time: task.plannedStart,
+        planned_duration: task.estimatedMin || null,
+      });
+      alert('已加入次日计划');
+    } catch (e) {
+      alert('加入失败: ' + (e.message || e));
+    }
+  }, []);
 
   // 倒计时每分钟刷新
   useEffect(() => {
@@ -712,7 +875,7 @@ export default function DashboardPage({ onBack, onNavigate }) {
       <ProgressBar completedMin={completedMin} completedCount={completedCount} totalCount={tasks.length} totalScore={totalScore} />
 
       {/* 当前应做提醒 */}
-      <CurrentReminder tasks={tasks} />
+      <CurrentReminder tasks={tasks} onTimerStart={handleTimerStart} onTimerEnd={handleTimerEnd} />
 
       {/* 任务列表 */}
       <section className="dash-tasks-section" id="dash-tasks">
@@ -725,14 +888,27 @@ export default function DashboardPage({ onBack, onNavigate }) {
         </div>
 
         <div className="dash-tasks-list">
-          {sortedTasks.map((task) => (
-            <TaskItem key={task.id} task={task} />
-          ))}
+          {loading ? (
+            <div className="dash-review-empty">加载中...</div>
+          ) : loadError ? (
+            <div className="dash-review-empty">加载失败：{loadError}</div>
+          ) : tasks.length === 0 ? (
+            <div className="dash-review-empty">今日暂无任务，可到「计划管理」生成或导入计划</div>
+          ) : sortedTasks.length === 0 ? (
+            <div className="dash-review-empty">当前过滤条件下暂无任务</div>
+          ) : (
+            sortedTasks.map((task) => (
+              <TaskItem key={task.id} task={task}
+                onCheckin={handleCheckin}
+                onTimerStart={handleTimerStart}
+                onTimerEnd={handleTimerEnd} />
+            ))
+          )}
         </div>
       </section>
 
       {/* 今日复习区域 */}
-      <ReviewSection tasks={tasks} onNavigate={onNavigate} />
+      <ReviewSection tasks={tasks} onNavigate={onNavigate} onAddTomorrow={handleAddTomorrow} />
 
       {/* Footer */}
       <footer className="global-footer">

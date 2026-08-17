@@ -26,6 +26,27 @@ async def list_phases(node_id: int):
         await db.close()
 
 
+@router.get("/phases/active")
+async def list_active_phases(date: str = None):
+    """查询指定日期（缺省今天）处于进行中的阶段（start_date <= date <= end_date），
+    JOIN 节点取主题标题。主看板「阶段状态条」用。"""
+    from datetime import date as date_cls
+    day = date or date_cls.today().isoformat()
+    db = await get_db()
+    try:
+        rows = await query(
+            db,
+            """SELECT p.*, n.title AS theme_title
+               FROM phases_v2 p
+               LEFT JOIN planning_nodes n ON n.id = p.node_id
+               WHERE p.start_date <= ? AND p.end_date >= ?
+               ORDER BY p.start_date""",
+            (day, day))
+        return success(rows)
+    finally:
+        await db.close()
+
+
 @router.get("/phases/{phase_id}")
 async def get_phase(phase_id: int):
     db = await get_db()

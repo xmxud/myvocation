@@ -5,6 +5,7 @@ import PlanManagementPage from '../PlanManagementPage.jsx';
 import TagListPage from '../TagListPage.jsx';
 import TaskExecutionPage from '../TaskExecutionPage.jsx';
 import MistakesPage from '../MistakesPage.jsx';
+import PhaseCheckpointsPage from '../PhaseCheckpointsPage.jsx';
 
 // ── Menu Configuration ──
 const MENU_CONFIG = [
@@ -369,6 +370,8 @@ export default function AdminLayout({ onBack, onNavigate, onLogout }) {
             <TaskExecutionPage embedded onNavigate={onNavigate} mode="today" />
           ) : activePage === 'error-analysis' ? (
             <MistakesPage embedded />
+          ) : activePage === 'phase-checkpoints' ? (
+            <PhaseCheckpointsPage embedded onNavigate={onNavigate} />
           ) : (
             <>
               <div className="admin-content__header">

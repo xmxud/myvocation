@@ -68,6 +68,8 @@ export const nodesApi = {
 
 export const phasesApi = {
   getPhasesByNode: (nodeId) => request(`/phases/by-node/${nodeId}`),
+  // 当前活跃阶段（当天日期落在阶段起止日期内），主看板阶段状态条用
+  getActivePhases: (date) => request(`/phases/active${date ? `?date=${date}` : ''}`),
   getPhase: (id) => request(`/phases/${id}`),
   createPhase: (data) => request('/phases', { method: 'POST', body: JSON.stringify(data) }),
   updatePhase: (id, data) => request(`/phases/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -79,6 +81,8 @@ export const phasesApi = {
 };
 
 export const executionsApi = {
+  // 跨主题按日期查询（主看板「今日任务」用）；date 缺省后端取今天
+  getTodayExecutions: (date) => request(`/daily-executions${date ? `?date=${date}` : ''}`),
   // params 支持：phase_id / date / start_date / end_date / focus_id
   getExecutions: (nodeId, params = {}) => {
     const qs = new URLSearchParams(

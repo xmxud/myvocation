@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { themesApi, nodesApi, phasesApi, learningRecordsApi, tagsApi } from '../src/utils/api.js';
+import { openMistakesPrintWindow, DEFAULT_EXPORT_OPTS } from '../src/utils/exportMistakes.js';
 
 /* ========================================
    MISTAKES PAGE
@@ -100,6 +101,50 @@ export default function MistakesPage({ onBack, embedded }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // ── 导出 ──
+  const [selectedIds, setSelectedIds] = useState([]);   // 勾选的错题 id（最多 10 条）
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportOpts, setExportOpts] = useState(DEFAULT_EXPORT_OPTS);
+
+  // ── 查看详情 ──
+  const [detailTargets, setDetailTargets] = useState(null); // 待查看的记录数组（null=弹窗关闭）
+  const [detailOpts, setDetailOpts] = useState({ ...DEFAULT_EXPORT_OPTS, blank: true });
+
+  // 单条查看（行内「查看」按钮）
+  const openDetail = (record) => {
+    setDetailTargets([record]);
+    setDetailOpts({ ...DEFAULT_EXPORT_OPTS, blank: true }); // 查看时默认展示全部内容项
+  };
+
+  // 多条查看（工具栏「查看详情」按钮，走勾选的记录）
+  const openDetailList = () => {
+    const picked = records.filter((r) => selectedIds.includes(r.id));
+    if (!picked.length) return;
+    setDetailTargets(picked);
+    setDetailOpts({ ...DEFAULT_EXPORT_OPTS, blank: true });
+  };
+
+  const handleViewDetail = () => {
+    if (!detailTargets?.length) return;
+    if (openMistakesPrintWindow(detailTargets, detailOpts, { autoPrint: false, title: '错题详情' })) setDetailTargets(null);
+    else alert('弹出窗口被浏览器拦截，请允许本站的弹出式窗口后重试');
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 10) { alert('一次最多导出 10 条错题'); return prev; }
+      return [...prev, id];
+    });
+  };
+
+  const handleExport = () => {
+    const picked = records.filter((r) => selectedIds.includes(r.id));
+    if (!picked.length) return;
+    if (openMistakesPrintWindow(picked, exportOpts)) setExportOpen(false);
+    else alert('弹出窗口被浏览器拦截，请允许本站的弹出式窗口后重试');
+  };
 
   // ── 弹窗 ──
   const [modalOpen, setModalOpen] = useState(false);
@@ -312,49 +357,56 @@ export default function MistakesPage({ onBack, embedded }) {
   };
 
   // 标签编辑区：chips + 可输入过滤的组合框（输入过滤已有标签，点选加入；回车把输入作为新标签加入）
-  const renderTagEditor = (field, label, options, inputValue, setInput, showType = true) => {
+  // 打标签编辑器拆成「标题 / 已选标签 / 输入框」三段，
+  // 外层用 2 列网格按行排布（相当于无边框表格），保证两个输入框严格对齐
+  const renderTagLabel = (label) => (
+    <span className="form-label" title={label}
+      style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+  );
+
+  const renderTagChips = (field) => (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', minHeight: 26 }}>
+      {form[field].map(t => (
+        <span key={t} className="status-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          {t}
+          <button type="button" onClick={() => removeTag(field, t)} title="移除"
+            style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1 }}>&times;</button>
+        </span>
+      ))}
+      {form[field].length === 0 && (
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>暂无标签，输入关键字筛选或直接新增</span>
+      )}
+    </div>
+  );
+
+  const renderTagInput = (field, options, inputValue, setInput, showType = true) => {
     const kw = inputValue.trim();
     const filtered = kw ? options.filter(t => t.name.includes(kw)) : options;
     return (
-      <div>
-        <span className="form-label">{label}</span>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, marginBottom: 6 }}>
-          {form[field].map(t => (
-            <span key={t} className="status-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              {t}
-              <button type="button" onClick={() => removeTag(field, t)} title="移除"
-                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1 }}>&times;</button>
-            </span>
-          ))}
-          {form[field].length === 0 && (
-            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>暂无标签，输入关键字筛选或直接新增</span>
-          )}
-        </div>
-        <div style={{ position: 'relative' }}>
-          <input className="form-input" value={inputValue}
-            onChange={e => { setInput(e.target.value); setOpenTagMenu(field); }}
-            onFocus={() => setOpenTagMenu(field)}
-            onBlur={() => setTimeout(() => setOpenTagMenu(null), 150)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(field, inputValue); setOpenTagMenu(null); } }}
-            placeholder="输入文字过滤标签，回车新增" />
-          {openTagMenu === field && filtered.length > 0 && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30,
-              background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)',
-              maxHeight: 200, overflowY: 'auto',
-            }}>
-              {filtered.map(t => (
-                <div key={t.id}
-                  onMouseDown={e => { e.preventDefault(); addTag(field, t.name); setOpenTagMenu(null); }}
-                  style={{ padding: '6px 12px', fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-sunken)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                  {t.name}{showType && t.type_name ? `（${t.type_name}）` : ''}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      <div style={{ position: 'relative' }}>
+        <input className="form-input" value={inputValue}
+          onChange={e => { setInput(e.target.value); setOpenTagMenu(field); }}
+          onFocus={() => setOpenTagMenu(field)}
+          onBlur={() => setTimeout(() => setOpenTagMenu(null), 150)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(field, inputValue); setOpenTagMenu(null); } }}
+          placeholder="输入文字过滤标签，回车新增" />
+        {openTagMenu === field && filtered.length > 0 && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30,
+            background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)',
+            maxHeight: 200, overflowY: 'auto',
+          }}>
+            {filtered.map(t => (
+              <div key={t.id}
+                onMouseDown={e => { e.preventDefault(); addTag(field, t.name); setOpenTagMenu(null); }}
+                style={{ padding: '6px 12px', fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-sunken)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+                {t.name}{showType && t.type_name ? `（${t.type_name}）` : ''}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -589,10 +641,25 @@ export default function MistakesPage({ onBack, embedded }) {
               </select>
             </div>
           </div>
-          <button className="cta-button" style={{ padding: '8px 20px', fontSize: '0.8125rem' }}
-            onClick={openCreate}>
-            + 新增错题
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }}>
+            {selectedIds.length > 0 && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>
+                已选 {selectedIds.length}/10
+              </span>
+            )}
+            <button className="action-btn" disabled={!selectedIds.length}
+              onClick={openDetailList}>
+              🔍 查看详情
+            </button>
+            <button className="action-btn" disabled={!selectedIds.length}
+              onClick={() => setExportOpen(true)}>
+              📄 导出错题
+            </button>
+            <button className="cta-button" style={{ padding: '8px 20px', fontSize: '0.8125rem' }}
+              onClick={openCreate}>
+              + 新增错题
+            </button>
+          </div>
         </div>
 
         {/* 错题列表 */}
@@ -615,6 +682,10 @@ export default function MistakesPage({ onBack, embedded }) {
                 const phase = phaseLabel(record.phase_id);
                 return (
                   <div key={record.id} className="drawer-item-row" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <input type="checkbox" title="选择导出"
+                      checked={selectedIds.includes(record.id)}
+                      onChange={() => toggleSelect(record.id)}
+                      style={{ marginTop: 5, marginRight: 4, flexShrink: 0, cursor: 'pointer' }} />
                     <div style={{ flex: '1 1 320px', minWidth: 0 }}>
                       <div style={{
                         fontWeight: 600, fontSize: '0.875rem', marginBottom: 4,
@@ -642,6 +713,7 @@ export default function MistakesPage({ onBack, embedded }) {
                     </div>
                     <span style={{ flexShrink: 0 }}>{renderMastery(record.mastery_level)}</span>
                     <div className="drawer-item-actions" style={{ flexShrink: 0 }}>
+                      <button className="action-btn" onClick={() => openDetail(record)}>查看</button>
                       <button className="action-btn" onClick={() => openEdit(record)}>编辑</button>
                       <button className="action-btn action-btn--danger" onClick={() => handleDelete(record)}>删除</button>
                     </div>
@@ -652,6 +724,79 @@ export default function MistakesPage({ onBack, embedded }) {
           )}
         </div>
       </div>
+
+      {/* 查看错题详情弹窗（选择内容项后在新窗口以网页形式展示） */}
+      {detailTargets && (
+        <div className="modal-overlay" onClick={() => setDetailTargets(null)}>
+          <div className="modal-panel" style={{ maxWidth: '26rem' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">查看错题详情（{detailTargets.length} 条）</h3>
+              <button className="modal-close" onClick={() => setDetailTargets(null)}>&times;</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', padding: '0.25rem 0' }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>
+                勾选要查看的内容，确认后将在新窗口打开详情页面。
+              </p>
+              {[
+                ['question', '原题（说明文字 + 原题图片）'],
+                ['blank', '空白题（空白题目图片）'],
+                ['solution', '解答过程（图片）'],
+                ['tags', '标签'],
+                ['knowledge', '知识点（梳理 + 整理图片）'],
+                ['reflection', '反思（说明 + 备注图片）'],
+              ].map(([key, label]) => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+                  <input type="checkbox" checked={detailOpts[key]}
+                    onChange={(e) => setDetailOpts({ ...detailOpts, [key]: e.target.checked })} />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="action-btn" onClick={() => setDetailTargets(null)}>取消</button>
+              <button type="button" className="cta-button" style={{ padding: '8px 20px', fontSize: '0.8125rem' }}
+                onClick={handleViewDetail}>查看</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 导出错题弹窗 */}
+      {exportOpen && (
+        <div className="modal-overlay" onClick={() => setExportOpen(false)}>
+          <div className="modal-panel" style={{ maxWidth: '26rem' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">导出错题（{selectedIds.length} 条）</h3>
+              <button className="modal-close" onClick={() => setExportOpen(false)}>&times;</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', padding: '0.25rem 0' }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>
+                勾选导出内容，确认后将在新窗口打开打印页面，选择「另存为 PDF」即可。
+              </p>
+              {[
+                ['question', '原题（说明文字 + 原题图片）'],
+                ['blank', '空白题（空白题目图片）'],
+                ['solution', '解答过程（图片）'],
+                ['tags', '标签'],
+                ['knowledge', '知识点（梳理 + 整理图片）'],
+                ['reflection', '反思（说明 + 备注图片）'],
+                ['blankSpace', '预留作答空白区'],
+              ].map(([key, label]) => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+                  <input type="checkbox" checked={exportOpts[key]}
+                    onChange={(e) => setExportOpts({ ...exportOpts, [key]: e.target.checked })} />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="action-btn" onClick={() => setExportOpen(false)}>取消</button>
+              <button type="button" className="cta-button" style={{ padding: '8px 20px', fontSize: '0.8125rem' }}
+                onClick={handleExport}>导出</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 新增/编辑弹窗 */}
       {modalOpen && (
@@ -756,10 +901,18 @@ export default function MistakesPage({ onBack, embedded }) {
                 </div>
                 <button type="button" className="action-btn" style={{ justifySelf: 'start' }}
                   onClick={() => setShowMore(v => !v)}>
-                  {showMore ? '收起更多 ▲' : '更多（知识点梳理 / 反思 / 打标签）▼'}
+                  {showMore ? '收起更多 ▲' : '更多（打标签 / 知识点梳理 / 反思）▼'}
                 </button>
                 {showMore && (
                   <div style={{ display: 'grid', gap: '0.75rem', paddingTop: '0.25rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '0.75rem', rowGap: 4 }}>
+                      {renderTagLabel('知识点标签（可多选，按重点联动过滤）')}
+                      {renderTagLabel('题型能力标签（可多选）')}
+                      {renderTagChips('knowledge_tags')}
+                      {renderTagChips('ability_tags')}
+                      {renderTagInput('knowledge_tags', availableKnowledgeOptions, tagInput, setTagInput)}
+                      {renderTagInput('ability_tags', availableAbilityOptions, abilityTagInput, setAbilityTagInput, false)}
+                    </div>
                     <label>
                       <span className="form-label">相关知识点梳理（可选）</span>
                       <textarea className="form-textarea" value={form.knowledge_note}
@@ -772,8 +925,6 @@ export default function MistakesPage({ onBack, embedded }) {
                         onChange={e => setForm({ ...form, reflection_text: e.target.value })}
                         placeholder="错误反思、改进思路（可选）" rows={2} />
                     </label>
-                    {renderTagEditor('knowledge_tags', '知识点标签（可多选，按重点联动过滤）', availableKnowledgeOptions, tagInput, setTagInput)}
-                    {renderTagEditor('ability_tags', '题型能力标签（可多选）', availableAbilityOptions, abilityTagInput, setAbilityTagInput, false)}
                   </div>
                 )}
                 <label>

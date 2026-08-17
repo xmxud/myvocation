@@ -2806,7 +2806,7 @@ img {
 }
 
 .dash-reminder-btn {
-  padding: 6px 16px;
+  padding: 6px 14px;
   border-radius: 6px;
   border: none;
   font-family: var(--font-mono);
@@ -2816,12 +2816,23 @@ img {
 }
 
 .dash-reminder-btn-start {
-  background: var(--color-primary);
-  color: var(--color-bg-base);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
 }
 
 .dash-reminder-btn-start:hover {
-  box-shadow: 0 0 12px rgba(0, 255, 102, 0.3);
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.dash-reminder-btn-close {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  color: #86efac;
+}
+
+.dash-reminder-btn-close:hover {
+  background: rgba(34, 197, 94, 0.2);
 }
 
 .dash-reminder-btn-end {
@@ -2831,11 +2842,11 @@ img {
 
 /* ── Task Timer ── */
 .dash-task-timer {
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 6px 14px;
+  border-radius: 6px;
   border: 1px solid rgba(59, 130, 246, 0.4);
   background: rgba(59, 130, 246, 0.1);
-  color: var(--state-info);
+  color: #93c5fd;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   cursor: pointer;
