@@ -5,6 +5,8 @@ pydantic>=2.6.0
 pydantic-settings>=2.1.0
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
+# passlib 1.7.4 与 bcrypt>=4.1 不兼容（读 __about__ 报 AttributeError），限制在 4.1 以下
+bcrypt<4.1
 python-multipart>=0.0.6
 openpyxl>=3.1.0
 oss2>=2.18.0
