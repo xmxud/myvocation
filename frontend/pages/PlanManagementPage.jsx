@@ -47,6 +47,7 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
   const [clearing, setClearing] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState(null);
+  const [importScope, setImportScope] = useState('single'); // single=仅当前阶段, tree=当前及下属阶段
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [page, setPage] = useState(1);
@@ -132,7 +133,10 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
     if (!importFile || importing) return;
     setImporting(true); setImportResult(null); setError('');
     try {
-      const payload = await executionsApi.importPlanExcel(Number(selectedThemeId), importFile);
+      const payload = await executionsApi.importPlanExcel(Number(selectedThemeId), importFile, {
+        phaseId: Number(selectedPhaseId),
+        includeChildren: importScope === 'tree',
+      });
       const d = payload.data || {};
       const lines = (d.sheets || []).map(s => `✓ ${s.sheet} → ${s.phase}（${s.count} 项）`);
       if ((d.skipped || []).length) lines.push(`跳过页签：${d.skipped.join('、')}`);
@@ -176,7 +180,7 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
           </div>
           {selectedThemeId && <div style={thStyle}>
             {selectedPhaseId && <button className="action-btn" style={btnStyle} onClick={openAdd}>+ 新增任务</button>}
-            <button className="action-btn" style={btnStyle} onClick={()=>{setImportOpen(true);setImportFile(null);setImportResult(null);}}>📤 导入计划</button>
+            {selectedPhaseId && <button className="action-btn" style={btnStyle} onClick={()=>{setImportOpen(true);setImportFile(null);setImportResult(null);setImportScope('single');}}>📤 导入计划</button>}
             {selectedPhaseId && <a className="action-btn" style={{...btnStyle,textDecoration:'none'}} href={executionsApi.exportPlanUrl(Number(selectedPhaseId))} download>📥 导出计划</a>}
             <a className="action-btn" style={{...btnStyle,textDecoration:'none'}}
               href={executionsApi.exportDailyUrl(Number(selectedThemeId), selectedDate || new Date().toISOString().slice(0,10))}
@@ -231,6 +235,17 @@ export default function PlanManagementPage({ onNavigate, embedded }) {
             请按模版填写每周计划：每个周计划页签的名称需以阶段编号开头（如「1.2. 暑假第二周（8.8-8.15）」），系统据此关联到对应阶段；
             页签内每行首列为时间段、每列首行为日期，每个非空格子将导入为一条任务。重复导入会覆盖该阶段此前导入的任务。
           </p>
+          <div style={{display:'flex',flexDirection:'column',gap:'0.5rem',padding:'0.75rem 1rem',border:'1px solid var(--color-border-subtle)',background:'var(--color-bg-sunken)'}}>
+            <span style={{color:'var(--color-text-tertiary)',fontSize:'0.75rem'}}>导入范围（当前阶段：{selectedPhase ? `${selectedPhase.phase_number}. ${selectedPhase.title}` : '—'}）</span>
+            <label style={{display:'flex',alignItems:'center',gap:'0.5rem',cursor:'pointer'}}>
+              <input type="radio" name="importScope" checked={importScope==='single'} onChange={()=>setImportScope('single')}/>
+              仅当前阶段计划 —— 只读取与当前阶段编号匹配的页签
+            </label>
+            <label style={{display:'flex',alignItems:'center',gap:'0.5rem',cursor:'pointer'}}>
+              <input type="radio" name="importScope" checked={importScope==='tree'} onChange={()=>setImportScope('tree')}/>
+              当前阶段及下属阶段计划 —— 跨阶段导入所有匹配的页签
+            </label>
+          </div>
           <a className="action-btn" style={{alignSelf:'flex-start',textDecoration:'none'}} href={executionsApi.planTemplateUrl} download="学习计划模版.xlsx">⬇ 下载模版</a>
           <div style={{display:'flex',alignItems:'center',gap:'0.75rem',flexWrap:'wrap'}}>
             <label className="action-btn" style={{cursor:'pointer'}}>选择文件

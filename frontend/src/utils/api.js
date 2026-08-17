@@ -117,11 +117,15 @@ export const executionsApi = {
   exportDailyUrl: (nodeId, date) =>
     `${API_BASE_URL}/daily-executions/export-daily/${nodeId}${date ? `?date=${date}` : ''}`,
   // 从 Excel 导入学习计划（multipart 上传，不能走 request() 的 JSON 通道）
-  importPlanExcel: async (nodeId, file) => {
+  // options: { phaseId, includeChildren } —— 限定导入范围为当前阶段（及下属阶段）
+  importPlanExcel: async (nodeId, file, { phaseId, includeChildren } = {}) => {
     const fd = new FormData();
     fd.append('file', file);
     const token = getToken();
-    const res = await fetch(`${API_BASE_URL}/daily-executions/import-excel?node_id=${nodeId}`, {
+    const qs = new URLSearchParams({ node_id: nodeId });
+    if (phaseId) qs.set('phase_id', phaseId);
+    if (includeChildren) qs.set('include_children', 'true');
+    const res = await fetch(`${API_BASE_URL}/daily-executions/import-excel?${qs.toString()}`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: fd,

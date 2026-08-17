@@ -385,12 +385,17 @@ def _parse_time_label(value):
 
 
 @router.post("/import-excel")
-async def import_plan_excel(node_id: int, file: UploadFile = File(...)):
+async def import_plan_excel(node_id: int, file: UploadFile = File(...),
+                            phase_id: int = None, include_children: bool = False):
     """从 Excel 导入学习计划。
 
-    页签名按阶段编号（如 '1.2. 暑假第二周'）匹配该主题下的阶段并关联 phase_id；
+    页签名按阶段编号（如 '1.2. 暑假第二周'）匹配阶段并关联 phase_id；
     页签内每个非空格子导入为一条任务，日期取自列表头（如 '8月8日'），
     计划时间取自行首时间段（如 '9:00-11:00'）。
+    导入范围由 phase_id / include_children 控制：
+    - 仅 phase_id：只匹配当前阶段对应的页签；
+    - phase_id + include_children：匹配当前阶段及其全部下属阶段的页签；
+    - 均不传：匹配该主题下所有阶段的页签（兼容旧行为）。
     幂等策略：先清除所涉及阶段下 source='excel' 的旧记录，再写入新任务。
     """
     db = await get_db()
@@ -398,6 +403,26 @@ async def import_plan_excel(node_id: int, file: UploadFile = File(...)):
         theme_phases = await query(db, "SELECT * FROM phases_v2 WHERE node_id = ?", (node_id,))
         if not theme_phases:
             return error("该主题下没有阶段，无法导入", 400)
+
+        # 限定可匹配的阶段范围
+        candidate_phases = theme_phases
+        if phase_id:
+            root_phase = next((p for p in theme_phases if p["id"] == phase_id), None)
+            if not root_phase:
+                return error("指定阶段不属于该主题", 400)
+            allowed_ids = {phase_id}
+            if include_children:
+                children_map = {}
+                for p in theme_phases:
+                    children_map.setdefault(p["parent_id"], []).append(p)
+                stack = [phase_id]
+                while stack:
+                    for child in children_map.get(stack.pop(), []):
+                        if child["id"] not in allowed_ids:
+                            allowed_ids.add(child["id"])
+                            stack.append(child["id"])
+            candidate_phases = [p for p in theme_phases if p["id"] in allowed_ids]
+
         focus_items = await query(
             db,
             "SELECT id, title FROM planning_nodes WHERE parent_id = ? AND node_type = 'FOCUS_ITEM'",
@@ -413,7 +438,7 @@ async def import_plan_excel(node_id: int, file: UploadFile = File(...)):
 
         for ws in wb.worksheets:
             phase_num = _sheet_phase_number(ws.title)
-            phase = next((p for p in theme_phases if str(p["phase_number"]) == phase_num), None) if phase_num else None
+            phase = next((p for p in candidate_phases if str(p["phase_number"]) == phase_num), None) if phase_num else None
             if not phase:
                 skipped.append(ws.title)
                 continue
