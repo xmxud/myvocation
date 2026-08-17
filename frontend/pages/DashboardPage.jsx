@@ -647,16 +647,26 @@ function TaskFilterBar({ activeFilter, onFilterChange, onNavigate }) {
   );
 }
 
+/** 是否窄屏（手机）：点击任务行改为弹悬浮框显示完整内容 */
+const isMobileView = () => window.matchMedia('(max-width: 640px)').matches;
+
 /** 单项任务卡片 */
 function TaskItem({ task, onCheckin, onTimerStart, onTimerEnd }) {
   const [expanded, setExpanded] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const sc = SUBJECT_COLORS[task.subject] || SUBJECT_COLORS['英语'];
   const pr = PRIORITY_LABELS[task.priority] || PRIORITY_LABELS['常规'];
+
+  // 手机点行 → 悬浮框；桌面点行 → 展开打卡面板
+  const handleRowClick = () => {
+    if (isMobileView()) setDetailOpen(true);
+    else setExpanded(!expanded);
+  };
 
   return (
     <div className={`dash-task ${task.completed ? 'dash-task-done' : ''}`} style={{ borderLeftColor: task.completed ? 'rgba(255,255,255,0.1)' : sc.border }}>
       {/* 主体行 */}
-      <div className="dash-task-row" onClick={() => setExpanded(!expanded)}>
+      <div className="dash-task-row" onClick={handleRowClick}>
         <div className="dash-task-check">
           {task.completed ? <CheckIcon /> : <UncheckIcon />}
         </div>
@@ -690,7 +700,7 @@ function TaskItem({ task, onCheckin, onTimerStart, onTimerEnd }) {
             <TaskTimer task={task} onStart={onTimerStart} onEnd={onTimerEnd} />
           )}
           {!task.completed ? (
-            <button className="dash-task-btn" onClick={() => setExpanded(!expanded)}>
+            <button className="dash-task-btn" onClick={handleRowClick}>
               {expanded ? '收起' : '打卡'}
             </button>
           ) : (
@@ -705,6 +715,43 @@ function TaskItem({ task, onCheckin, onTimerStart, onTimerEnd }) {
       {expanded && task.completed && (
         <div className="dash-task-panel dash-task-panel-done">
           <span>{task.note || '无备注'}</span>
+        </div>
+      )}
+
+      {/* 手机端悬浮详情框：完整任务描述 + 打卡面板 */}
+      {detailOpen && (
+        <div className="modal-overlay" onClick={() => setDetailOpen(false)}>
+          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">任务详情</h3>
+              <button className="modal-close" onClick={() => setDetailOpen(false)}>&times;</button>
+            </div>
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span className="dash-task-subject" style={{ color: sc.text, background: sc.bg, borderColor: sc.border }}>
+                  {task.subject}
+                </span>
+                <span className="dash-task-priority" style={{ color: pr.color }}>{pr.label}</span>
+              </div>
+              <p style={{
+                margin: 0, fontSize: '0.9375rem', fontWeight: 600, lineHeight: 1.6,
+                color: 'var(--color-text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              }}>
+                {task.title}
+              </p>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>
+                {(task.plannedStart || task.plannedEnd) && <span>计划 {task.plannedStart} — {task.plannedEnd}</span>}
+                <span>{task.completed ? `已执行 ${task.actualMin ?? 0}min` : `预计 ${task.estimatedMin}min`}</span>
+                {task.score != null && <span>评分 {task.score}</span>}
+              </div>
+              {task.note && (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', whiteSpace: 'pre-wrap' }}>{task.note}</div>
+              )}
+              {!task.completed && (
+                <TaskCheckinPanel task={task} onSubmit={async (t, form) => { await onCheckin(t, form); setDetailOpen(false); }} />
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
